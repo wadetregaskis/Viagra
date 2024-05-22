@@ -220,7 +220,7 @@ struct ShrinkSlowlyLayout: Layout {
                         cache.current[key] = slightlySmallerValue
                         return slightlySmallerValue
                     } else {
-                        log("Non-shrinker update (not currently shrinking or still in delay period; lastIncreaseTime: \(cache.lastIncreaseTime)).")
+                        log("Non-shrinker update (not currently shrinking or still in delay period; lastIncreaseTime: \(cache.lastIncreaseTime.orNilString)).")
                         return cachedValue
                     }
                 }
@@ -307,11 +307,11 @@ struct ShrinkSlowlyLayout: Layout {
             }
 
             if cache.desiredSize?.encompasses(bounds.size) ?? false {
-                log("Desired size \(cache.desiredSize) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
+                log("Desired size \(cache.desiredSize.orNilString) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
 
                 cache.lastIncreaseTime = .now
             } else if nil == cache.shrinker && (cache.desiredSize?.isSmallerThan(bounds.size) ?? false) {
-                log("Desired size \(cache.desiredSize) is smaller than current rendered size \(bounds.size), so starting shrinker…")
+                log("Desired size \(cache.desiredSize.orNilString) is smaller than current rendered size \(bounds.size), so starting shrinker…")
 
                 startShrinker(cache: &cache)
             }
@@ -320,7 +320,7 @@ struct ShrinkSlowlyLayout: Layout {
 //                log("Previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
 
                 if !(cache.lastRenderedSize?.encompasses(bounds.size) ?? false) {
-                    log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
+                    log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")
                 }
 
                 cache.lastRenderedSize = bounds.size
@@ -328,6 +328,16 @@ struct ShrinkSlowlyLayout: Layout {
         }
 
         subview.place(at: bounds.origin, proposal: proposal) // ❌
+    }
+}
+
+extension Optional {
+    var orNilString: String {
+        if let self {
+            return String(describing: self)
+        } else {
+            return "nil"
+        }
     }
 }
 

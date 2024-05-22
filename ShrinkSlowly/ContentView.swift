@@ -149,12 +149,27 @@ struct ShrinkSlowlyLayout: Layout {
         }
     }
 
+    struct FuckingCGSize: Hashable {
+        var width: CGFloat
+        var height: CGFloat
+
+        init(_ size: CGSize) {
+            self.width = size.width
+            self.height = size.height
+        }
+
+        var asCGSize: CGSize {
+            CGSize(width: width, height: height)
+        }
+    }
+
     class Cache {
         var current = [FuckingProposedViewSize: CGSize]()
         var target = [FuckingProposedViewSize: CGSize]()
         var lastIncreaseTime: ContinuousClock.Instant? = nil
-        var lastRenderedSize: CGSize? = nil
+        var lastRenderedSize: CGSize? = nil // TODO: remove this as it's unused.
         var desiredSize: CGSize? = nil
+        var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
         var shrinker: Task<Void, Never>? = nil
 
         init() {}
@@ -182,6 +197,10 @@ struct ShrinkSlowlyLayout: Layout {
         let subviewResponse = subview.sizeThatFits(proposal)
 
         if proposal.isReal {
+            if let lastDesiredSize = cache.desiredSize {
+                cache.renderTimesPerDesiredSize[FuckingCGSize(lastDesiredSize)] = .now
+            }
+
             if cache.desiredSize != subviewResponse {
                 log("Desired size:", subviewResponse)
                 cache.desiredSize = subviewResponse
@@ -261,6 +280,30 @@ struct ShrinkSlowlyLayout: Layout {
                             throw CancellationError()
                         }
 
+                        guard let desiredSize = cache.desiredSize else {
+                            log("🐞 Don't know my own desired size, so can't shrink to anything.  Cancelling.")
+                            throw CancellationError()
+                        }
+
+                        let times = cache.renderTimesPerDesiredSize.sorted { $0.key.width < $1.key.width }
+
+                        for (size, time) in times {
+                            print("\(size) last desired at \(time).")
+
+                            let timeout = time + delay
+                            let timeRemaining = timeout - .now
+
+                            if desiredSize.isSmallerThan(size.asCGSize) && .zero < timeRemaining {
+                                print("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
+                                try await Task.sleep(for: timeRemaining)
+                                continue delayLoop
+                            }
+                        }
+
+                        print("No delay left on shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize).")
+
+                        break delayLoop
+
                         guard let lastIncreaseTime = cache.lastIncreaseTime else {
                             log("No last increase time!")
                             throw CancellationError()
@@ -301,19 +344,23 @@ struct ShrinkSlowlyLayout: Layout {
         log("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
 
         if proposal.isReal {
-            if nil != cache.shrinker && cache.desiredSize == bounds.size {
-                cache.shrinker?.cancel()
-                cache.shrinker = nil
-            }
+            if let desiredSize = cache.desiredSize {
+                cache.renderTimesPerDesiredSize[FuckingCGSize(desiredSize)] = .now
 
-            if cache.desiredSize?.encompasses(bounds.size) ?? false {
-                log("Desired size \(cache.desiredSize.orNilString) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
+                if nil != cache.shrinker && desiredSize == bounds.size {
+                    cache.shrinker?.cancel()
+                    cache.shrinker = nil
+                }
 
-                cache.lastIncreaseTime = .now
-            } else if nil == cache.shrinker && (cache.desiredSize?.isSmallerThan(bounds.size) ?? false) {
-                log("Desired size \(cache.desiredSize.orNilString) is smaller than current rendered size \(bounds.size), so starting shrinker…")
+                if desiredSize.encompasses(bounds.size) {
+                    log("Desired size \(desiredSize) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
 
-                startShrinker(cache: &cache)
+                    cache.lastIncreaseTime = .now
+                } else if nil == cache.shrinker && desiredSize.isSmallerThan(bounds.size) {
+                    log("Desired size \(desiredSize) is smaller than current rendered size \(bounds.size), so starting shrinker…")
+
+                    startShrinker(cache: &cache)
+                }
             }
 
             if cache.lastRenderedSize != bounds.size {

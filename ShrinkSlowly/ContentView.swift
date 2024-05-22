@@ -7,6 +7,22 @@
 
 import SwiftUI
 
+let startTime = ContinuousClock.now
+
+func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+    var message = ""
+
+    for item in items {
+        if !message.isEmpty {
+            message.append(separator)
+        }
+
+        message.append(String(describing: item))
+    }
+
+    print("[", (.now - startTime).formatted(.time(pattern: .hourMinuteSecond(padHourToLength: 0, fractionalSecondsLength: 3))), "] ", message, separator: "", terminator: terminator)
+}
+
 struct Custom: CustomAnimation {
 //    func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic {
 //        print("Dud animate")
@@ -27,7 +43,7 @@ struct Custom: CustomAnimation {
             guard let _ = value as? Double else {
                 var fuckYouSwift = ""
                 dump(context, to: &fuckYouSwift)
-                print("💩 value:", value, "context:", fuckYouSwift)
+                log("💩 value:", value, "context:", fuckYouSwift)
                 return nil
             }
 
@@ -56,20 +72,20 @@ struct NeverShrink: Layout {
     typealias Cache = [FuckingProposedViewSize: CGSize]
 
     func makeCache(subviews: Self.Subviews) -> Self.Cache {
-        print("Making cache.")
+        log("Making cache.")
         return Cache()
     }
 
     func updateCache(_ cache: inout Self.Cache,
                      subviews: Self.Subviews) {
-        print("No update cache for you!")
+        log("No update cache for you!")
     }
 
     func sizeThatFits(proposal: ProposedViewSize,
                       subviews: Subviews,
                       cache: inout Cache) -> CGSize {
         guard let subview = subviews.first, 1 == subviews.count else {
-            print("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
             return CGSize(width: 0, height: 0)
         }
 
@@ -80,7 +96,7 @@ struct NeverShrink: Layout {
 
         if let cachedValue = cache[key] {
             if cachedValue.width >= subviewResponse.width && cachedValue.height >= subviewResponse.height {
-                print("Cached value \(cachedValue) is >= subviewResponse \(subviewResponse).")
+                log("Cached value \(cachedValue) is >= subviewResponse \(subviewResponse).")
                 return cachedValue
             }
 
@@ -89,9 +105,9 @@ struct NeverShrink: Layout {
                             height: max(subviewResponse.height,
                                         cachedValue.height))
 
-            print("Cached value \(cachedValue) is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
+            log("Cached value \(cachedValue) is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
         } else {
-            print("No cached value for \(key); using subviewResponse:", subviewResponse)
+            log("No cached value for \(key); using subviewResponse:", subviewResponse)
             result = subviewResponse
         }
 
@@ -105,11 +121,11 @@ struct NeverShrink: Layout {
                        subviews: Subviews,
                        cache: inout Cache) {
         guard let subview = subviews.first, 1 == subviews.count else {
-            print("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
             return
         }
 
-        print("Placing subview in bounds \(bounds) with proposal \(proposal).")
+        log("Placing subview in bounds \(bounds) with proposal \(proposal).")
 
         subview.place(at: bounds.origin, proposal: proposal) // ❌
 //        subview.place(at: bounds.origin, proposal: .unspecified) // ❌
@@ -118,12 +134,10 @@ struct NeverShrink: Layout {
 }
 
 struct ShrinkSlowlyLayout: Layout {
-    let tick: Int
+    @MainActor @Binding var tick: Bool
 
     let delay: ContinuousClock.Duration
-    @Binding var lastIncreaseTime: ContinuousClock.Instant?
-    @Binding var lastRenderedSize: CGSize?
-    @Binding var needsToShrink: Bool
+    let speed: Double
 
     struct FuckingProposedViewSize: Hashable {
         var width: CGFloat?
@@ -135,38 +149,43 @@ struct ShrinkSlowlyLayout: Layout {
         }
     }
 
-    struct Cache {
+    class Cache {
         var current = [FuckingProposedViewSize: CGSize]()
         var target = [FuckingProposedViewSize: CGSize]()
+        var lastIncreaseTime: ContinuousClock.Instant? = nil
         var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
+        var shrinker: Task<Void, Never>? = nil
 
         init() {}
     }
 
     func makeCache(subviews: Self.Subviews) -> Self.Cache {
-        print("Making cache.")
+        log("Making cache.")
         return Cache()
     }
 
     func updateCache(_ cache: inout Self.Cache,
                      subviews: Self.Subviews) {
-        print("No update cache for you!")
+        log("No update cache for you!")
     }
 
+    @MainActor
     func sizeThatFits(proposal: ProposedViewSize,
                       subviews: Subviews,
                       cache: inout Cache) -> CGSize {
         guard let subview = subviews.first, 1 == subviews.count else {
-            print("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
             return CGSize(width: 0, height: 0)
         }
 
         let subviewResponse = subview.sizeThatFits(proposal)
 
         if proposal.isReal {
-            print("Desired size:", subviewResponse)
-            cache.desiredSize = subviewResponse
+            if cache.desiredSize != subviewResponse {
+                log("Desired size:", subviewResponse)
+                cache.desiredSize = subviewResponse
+            }
         }
 
         let key = FuckingProposedViewSize(proposal)
@@ -176,39 +195,32 @@ struct ShrinkSlowlyLayout: Layout {
         let result: CGSize
 
         if let cachedValue = cache.current[key] {
-            if !needsToShrink && subviewResponse != cachedValue {
-                print("Target differs from current value for \(proposal.description); needs to shrink.")
-
-                DispatchQueue.main.async {
-                    needsToShrink = true
-//                    lastIncreaseTime = .now
-                }
+            if nil == cache.shrinker && subviewResponse != cachedValue {
+                log("Target differs from current value for \(proposal.description); needs to shrink.")
             }
 
             if cachedValue.width >= subviewResponse.width && cachedValue.height >= subviewResponse.height {
-                print("Cached value for \(proposal.description) is \(cachedValue) which is >= subviewResponse \(subviewResponse).")
+                log("Cached value for \(proposal.description) is \(cachedValue) which is >= subviewResponse \(subviewResponse).")
 
                 if subviewResponse == cachedValue {
-                    if needsToShrink && cache.target == cache.current {
-                        print("Target met - no longer need to shrink.")
+                    if nil != cache.shrinker && cache.target == cache.current {
+                        log("Target met - no longer need to shrink.")
 
-                        DispatchQueue.main.async {
-                            needsToShrink = false
-//                            lastIncreaseTime = nil
-                        }
+                        cache.shrinker?.cancel()
+                        cache.shrinker = nil
                     }
 
                     return cachedValue
                 } else {
-                    if let lastIncreaseTime, .zero >= lastIncreaseTime + delay - .now {
-                        print("Shrinking slightly (lastIncreaseTime: \(lastIncreaseTime), delay: \(delay), now: \(ContinuousClock.now))…")
+                    if let lastIncreaseTime = cache.lastIncreaseTime, .zero >= lastIncreaseTime + delay - .now {
+                        log("Shrinking slightly (lastIncreaseTime: \(lastIncreaseTime), delay: \(delay), now: \(ContinuousClock.now))…")
                         let slightlySmallerValue = CGSize(width: max(subviewResponse.width, cachedValue.width - 1),
                                                           height: max(subviewResponse.height, cachedValue.height - 1))
 
                         cache.current[key] = slightlySmallerValue
                         return slightlySmallerValue
                     } else {
-                        print("Non-shrinker update (not currently shrinking or still in delay period; lastIncreaseTime: \(lastIncreaseTime)).")
+                        log("Non-shrinker update (not currently shrinking or still in delay period; lastIncreaseTime: \(cache.lastIncreaseTime)).")
                         return cachedValue
                     }
                 }
@@ -219,51 +231,96 @@ struct ShrinkSlowlyLayout: Layout {
                             height: max(subviewResponse.height,
                                         cachedValue.height))
 
-            print("Cached value for \(proposal.description) is \(cachedValue) which is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
+            log("Cached value for \(proposal.description) is \(cachedValue) which is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
         } else {
             result = subviewResponse
 
-            print("No cached value for \(proposal.description); using subviewResponse:", subviewResponse)
+            log("No cached value for \(proposal.description); using subviewResponse:", subviewResponse)
         }
-
-//        DispatchQueue.main.async {
-//            lastIncreaseTime = .now
-//        }
 
         cache.current[key] = result
 
         return result
     }
 
+    @MainActor
+    func startShrinker(cache: inout Cache) {
+        log("Starting shrinker…")
+
+        if let existingShrinker = cache.shrinker {
+            log("WARNING: already had a shrinker.")
+            existingShrinker.cancel()
+        }
+
+        cache.shrinker = Task { @MainActor [weak cache] in
+            do {
+                while !Task.isCancelled {
+                    delayLoop: while true {
+                        guard let cache else {
+                            log("Cache gone, cancelling.")
+                            throw CancellationError()
+                        }
+
+                        guard let lastIncreaseTime = cache.lastIncreaseTime else {
+                            log("No last increase time!")
+                            throw CancellationError()
+                        }
+
+                        let startShrinkingAt = lastIncreaseTime + delay
+                        let durationUntilShrinkingStarts = startShrinkingAt - .now
+
+                        if .zero < durationUntilShrinkingStarts {
+                            log("In delay period before shrink (for another \(durationUntilShrinkingStarts))…")
+                            try await Task.sleep(for: durationUntilShrinkingStarts)
+                        } else {
+                            log("No delay (durationUntilShrinkingStarts: \(durationUntilShrinkingStarts), startShrinkingAt: \(startShrinkingAt), now: \(ContinuousClock.now)).")
+                            break delayLoop
+                        }
+                    }
+
+                    log("TICK")
+                    tick.toggle()
+                    try await Task.sleep(for: .seconds(1) / speed)
+                }
+            } catch {
+                log("Shrinker cancelled.")
+            }
+        }
+    }
+
+    @MainActor
     func placeSubviews(in bounds: CGRect,
                        proposal: ProposedViewSize,
                        subviews: Subviews,
                        cache: inout Cache) {
         guard let subview = subviews.first, 1 == subviews.count else {
-            print("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
             return
         }
 
-        print("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
+        log("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
 
         if proposal.isReal {
-            if cache.desiredSize?.encompasses(bounds.size) ?? false {
-                print("Desired size \(cache.desiredSize) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
+            if nil != cache.shrinker && cache.desiredSize == bounds.size {
+                cache.shrinker?.cancel()
+                cache.shrinker = nil
+            }
 
-                DispatchQueue.main.async {
-                    lastIncreaseTime = .now
-                }
+            if cache.desiredSize?.encompasses(bounds.size) ?? false {
+                log("Desired size \(cache.desiredSize) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
+
+                cache.lastIncreaseTime = .now
+            } else if nil == cache.shrinker && (cache.desiredSize?.isSmallerThan(bounds.size) ?? false) {
+                log("Desired size \(cache.desiredSize) is smaller than current rendered size \(bounds.size), so starting shrinker…")
+
+                startShrinker(cache: &cache)
             }
 
             if cache.lastRenderedSize != bounds.size {
-                //            print("Previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
+//                log("Previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
 
                 if !(cache.lastRenderedSize?.encompasses(bounds.size) ?? false) {
-                    print("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
-
-//                    DispatchQueue.main.async {
-//                        lastIncreaseTime = .now
-//                    }
+                    log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
                 }
 
                 cache.lastRenderedSize = bounds.size
@@ -271,8 +328,6 @@ struct ShrinkSlowlyLayout: Layout {
         }
 
         subview.place(at: bounds.origin, proposal: proposal) // ❌
-//        subview.place(at: bounds.origin, proposal: .unspecified) // ❌
-//        subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size)) // ❌
     }
 }
 
@@ -313,12 +368,7 @@ extension CGSize {
 
 @MainActor
 struct ShrinkSlowly<C: View>: View {
-    @State var tick = 0
-    @State var lastIncreaseTime: ContinuousClock.Instant? = nil
-    @State var lastRenderedSize: CGSize? = nil
-
-//    @State var needsToShrink: Bool = false
-    @State var shrinker: Task<Void, Never>? = nil
+    @State var tick = false
 
     let delay: Duration
     let speed: Double
@@ -334,61 +384,12 @@ struct ShrinkSlowly<C: View>: View {
     }
 
     var body: some View {
-        let needsToShrink = Binding<Bool>(get: {
-            nil != shrinker
-        }, set: {
-            if $0 {
-                if nil == shrinker {
-                    print("Starting shrinker…")
+        let _ = tick // Have to explicitly reference `tick` in order to be re-run when `tick` changes.
 
-                    shrinker = Task {
-                        do {
-                            while !Task.isCancelled {
-                                delayLoop: while true {
-                                    guard let lastIncreaseTime else {
-                                        print("No last increase time!")
-                                        throw CancellationError()
-                                    }
-
-                                    let startShrinkingAt = lastIncreaseTime + delay
-                                    let durationUntilShrinkingStarts = startShrinkingAt - .now
-
-                                    if .zero < durationUntilShrinkingStarts {
-                                        print("In delay period before shrink (for another \(durationUntilShrinkingStarts))…")
-                                        try await Task.sleep(for: durationUntilShrinkingStarts)
-                                    } else {
-                                        print("No delay (durationUntilShrinkingStarts: \(durationUntilShrinkingStarts), startShrinkingAt: \(startShrinkingAt), now: \(ContinuousClock.now)).")
-                                        break delayLoop
-                                    }
-                                }
-
-                                print("TICK")
-                                tick += 1
-                                try await Task.sleep(for: .seconds(1) / speed)
-                                //                            lastIncreaseTime = nil
-                            }
-                        } catch {
-                            print("Shrinker cancelled.")
-                        }
-                    }
-                } else {
-                    print("Shrinker needed and already running.")
-                }
-            } else {
-                print("Shrinker no longer needed; cancelling…")
-                shrinker?.cancel()
-                shrinker = nil
-            }
-        })
-
-        ShrinkSlowlyLayout(tick: tick,
+        ShrinkSlowlyLayout(tick: $tick,
                            delay: delay,
-                           lastIncreaseTime: $lastIncreaseTime,
-                           lastRenderedSize: $lastRenderedSize,
-                           needsToShrink: needsToShrink) {
+                           speed: speed) {
             content()
-        }.onDisappear {
-            shrinker?.cancel()
         }
     }
 }
@@ -429,17 +430,17 @@ struct ContentView: View {
                 //                    $0.frame(width: $1.width, height: $1.height)
                 //                } keyframes: { value in
                 //                    KeyframeTrack(\.width) {
-                //                        let _ = print("value:", value, "frameSize:", frameSize)
+                //                        let _ = log("value:", value, "frameSize:", frameSize)
                 //
                 //                        LinearKeyframe(frameSize.width, duration: frameSize.width < value.width ? 10 : 0.5)
                 //                    }
                 //                }
 
                 //                .phaseAnimator([1, 2], trigger: frameSize) {
-                //                    let _ = print("phaseAnimator:", $0, $1)
+                //                    let _ = log("phaseAnimator:", $0, $1)
                 //                    $0.frame(width: frameSize.width, height: frameSize.height)
                 //                } animation: {
-                //                    print("animation:", $0)
+                //                    log("animation:", $0)
                 //                    return Animation.linear(duration: $0)
                 //                }
 
@@ -513,12 +514,12 @@ struct ContentView: View {
             HStack {
                 Button("Shrink") {
                     width /= 2
-                    print("New width:", width)
+                    log("New width:", width)
                 }
 
                 Button("Grow") {
                     width *= 2
-                    print("New width:", width)
+                    log("New width:", width)
                 }
             }
         }

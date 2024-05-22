@@ -139,6 +139,7 @@ struct ShrinkSlowlyLayout: Layout {
         var current = [FuckingProposedViewSize: CGSize]()
         var target = [FuckingProposedViewSize: CGSize]()
         var lastRenderedSize: CGSize? = nil
+        var desiredSize: CGSize? = nil
 
         init() {}
     }
@@ -163,6 +164,11 @@ struct ShrinkSlowlyLayout: Layout {
 
         let subviewResponse = subview.sizeThatFits(proposal)
 
+        if proposal.isReal {
+            print("Desired size:", subviewResponse)
+            cache.desiredSize = subviewResponse
+        }
+
         let key = FuckingProposedViewSize(proposal)
 
         cache.target[key] = subviewResponse
@@ -171,7 +177,7 @@ struct ShrinkSlowlyLayout: Layout {
 
         if let cachedValue = cache.current[key] {
             if !needsToShrink && subviewResponse != cachedValue {
-                print("Target differs from current value for \(proposal); needs to shrink.")
+                print("Target differs from current value for \(proposal.description); needs to shrink.")
 
                 DispatchQueue.main.async {
                     needsToShrink = true
@@ -180,7 +186,7 @@ struct ShrinkSlowlyLayout: Layout {
             }
 
             if cachedValue.width >= subviewResponse.width && cachedValue.height >= subviewResponse.height {
-                print("Cached value for \(proposal) is \(cachedValue) which is >= subviewResponse \(subviewResponse).")
+                print("Cached value for \(proposal.description) is \(cachedValue) which is >= subviewResponse \(subviewResponse).")
 
                 if subviewResponse == cachedValue {
                     if needsToShrink && cache.target == cache.current {
@@ -213,11 +219,11 @@ struct ShrinkSlowlyLayout: Layout {
                             height: max(subviewResponse.height,
                                         cachedValue.height))
 
-            print("Cached value for \(proposal) is \(cachedValue) which is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
+            print("Cached value for \(proposal.description) is \(cachedValue) which is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
         } else {
             result = subviewResponse
 
-            print("No cached value for \(proposal); using subviewResponse:", subviewResponse)
+            print("No cached value for \(proposal.description); using subviewResponse:", subviewResponse)
         }
 
 //        DispatchQueue.main.async {
@@ -238,25 +244,52 @@ struct ShrinkSlowlyLayout: Layout {
             return
         }
 
-        print("Placing subview in bounds \(bounds) with proposal \(proposal).")
+        print("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
 
-        if (proposal.width?.isFinite ?? false) && (proposal.height?.isFinite ?? false) && cache.lastRenderedSize != bounds.size {
-//            print("Previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
-
-            if !(cache.lastRenderedSize?.encompasses(bounds.size) ?? false) {
-                print("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
+        if proposal.isReal {
+            if cache.desiredSize?.encompasses(bounds.size) ?? false {
+                print("Desired size \(cache.desiredSize) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
 
                 DispatchQueue.main.async {
                     lastIncreaseTime = .now
                 }
             }
 
-            cache.lastRenderedSize = bounds.size
+            if cache.lastRenderedSize != bounds.size {
+                //            print("Previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
+
+                if !(cache.lastRenderedSize?.encompasses(bounds.size) ?? false) {
+                    print("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
+
+//                    DispatchQueue.main.async {
+//                        lastIncreaseTime = .now
+//                    }
+                }
+
+                cache.lastRenderedSize = bounds.size
+            }
         }
 
         subview.place(at: bounds.origin, proposal: proposal) // ❌
 //        subview.place(at: bounds.origin, proposal: .unspecified) // ❌
 //        subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size)) // ❌
+    }
+}
+
+extension ProposedViewSize {
+    var description: String {
+        let w = if let width { width.description } else { "nil" }
+        let h = if let height { height.description } else { "nil" }
+
+        return "(\(w), \(h))"
+    }
+
+    var isConcrete: Bool {
+        (width?.isFinite ?? false) && (height?.isFinite ?? false)
+    }
+
+    var isReal: Bool {
+        isConcrete && (0 < (width ?? 0)) && (0 < (height ?? 0))
     }
 }
 
@@ -267,6 +300,14 @@ extension CGSize {
 
     func encompasses(_ other: CGSize) -> Bool {
         self.width >= other.width && self.height >= other.height
+    }
+
+    func isBiggerThan(_ other: CGSize) -> Bool {
+        self.width > other.width || self.height > other.height
+    }
+
+    func isSmallerThan(_ other: CGSize) -> Bool {
+        self.width < other.width || self.height < other.height
     }
 }
 

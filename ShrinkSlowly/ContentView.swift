@@ -25,7 +25,7 @@ func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {
 
 struct Custom: CustomAnimation {
 //    func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic {
-//        print("Dud animate")
+//        log("Dud animate")
 //        return nil
 //    }
 
@@ -288,19 +288,19 @@ struct ShrinkSlowlyLayout: Layout {
                         let times = cache.renderTimesPerDesiredSize.sorted { $0.key.width < $1.key.width }
 
                         for (size, time) in times {
-                            print("\(size) last desired at \(time).")
+                            log("\(size) last desired at \(time).")
 
                             let timeout = time + delay
                             let timeRemaining = timeout - .now
 
                             if desiredSize.isSmallerThan(size.asCGSize) && .zero < timeRemaining {
-                                print("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
+                                log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
                                 try await Task.sleep(for: timeRemaining)
                                 continue delayLoop
                             }
                         }
 
-                        print("No delay left on shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize).")
+                        log("No delay left on shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize).")
 
                         break delayLoop
 

@@ -215,9 +215,9 @@ struct ShrinkSlowlyLayout: Layout {
         let result: CGSize
 
         if let cachedValue = cache.current[key] {
-            if nil == cache.shrinker && subviewResponse != cachedValue {
-                log("Target differs from current value for \(proposal.description); needs to shrink.")
-            }
+//            if nil == cache.shrinker && subviewResponse != cachedValue {
+//                log("Target differs from current value for \(proposal.description); needs to shrink.")
+//            }
 
             if cachedValue.width >= subviewResponse.width && cachedValue.height >= subviewResponse.height {
                 log("Cached value for \(proposal.description) is \(cachedValue) which is >= subviewResponse \(subviewResponse).")

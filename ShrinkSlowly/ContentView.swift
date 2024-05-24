@@ -183,7 +183,7 @@ struct ShrinkSlowlyLayout: Layout {
 
     func updateCache(_ cache: inout Self.Cache,
                      subviews: Self.Subviews) {
-        log("No update cache for you!")
+        // Do nothing; the default implementation destroys the cache, so we have to override it merely to stop that.
     }
 
     @MainActor

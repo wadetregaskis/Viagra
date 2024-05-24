@@ -164,8 +164,6 @@ struct ShrinkSlowlyLayout: Layout {
     }
 
     class Cache {
-        var current = [FuckingProposedViewSize: CGSize]()
-        var target = [FuckingProposedViewSize: CGSize]()
         var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
         var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()

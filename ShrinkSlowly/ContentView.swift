@@ -198,6 +198,7 @@ struct ShrinkSlowlyLayout: Layout {
 
         if proposal.isReal {
             if let lastDesiredSize = cache.desiredSize {
+                log("Last desired size was \(lastDesiredSize) - recording to for time \(ContinuousClock.now).")
                 cache.renderTimesPerDesiredSize[FuckingCGSize(lastDesiredSize)] = .now
             }
 
@@ -345,6 +346,7 @@ struct ShrinkSlowlyLayout: Layout {
 
         if proposal.isReal {
             if let desiredSize = cache.desiredSize {
+                log("Desired size is \(desiredSize), recording that for \(ContinuousClock.now).")
                 cache.renderTimesPerDesiredSize[FuckingCGSize(desiredSize)] = .now
 
                 if nil != cache.shrinker && desiredSize == bounds.size {

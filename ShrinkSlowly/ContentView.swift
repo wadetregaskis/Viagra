@@ -167,7 +167,7 @@ struct ShrinkSlowlyLayout: Layout {
         var current = [FuckingProposedViewSize: CGSize]()
         var target = [FuckingProposedViewSize: CGSize]()
         var lastIncreaseTime: ContinuousClock.Instant? = nil
-        var lastRenderedSize: CGSize? = nil // TODO: remove this as it's unused.
+        var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
         var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
         var shrinker: Task<Void, Never>? = nil
@@ -294,7 +294,7 @@ struct ShrinkSlowlyLayout: Layout {
                             let timeout = time + delay
                             let timeRemaining = timeout - .now
 
-                            if desiredSize.isSmallerThan(size.asCGSize) && .zero < timeRemaining {
+                            if (cache.lastRenderedSize?.isSmallerThan(size.asCGSize) ?? false) && .zero < timeRemaining {
                                 log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
                                 try await Task.sleep(for: timeRemaining)
                                 continue delayLoop

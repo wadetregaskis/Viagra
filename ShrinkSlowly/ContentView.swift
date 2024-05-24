@@ -323,21 +323,6 @@ struct ShrinkSlowlyLayout: Layout {
 
                         cache.targetSize = targetSize
 
-//                        guard let lastIncreaseTime = cache.lastIncreaseTime else {
-//                            log("No last increase time!")
-//                            throw CancellationError()
-//                        }
-//
-//                        let startShrinkingAt = lastIncreaseTime + delay
-//                        let durationUntilShrinkingStarts = startShrinkingAt - .now
-//
-//                        if .zero < durationUntilShrinkingStarts {
-//                            log("In delay period before shrink (for another \(durationUntilShrinkingStarts))…")
-//                            try await Task.sleep(for: durationUntilShrinkingStarts)
-//                        } else {
-//                            log("No delay (durationUntilShrinkingStarts: \(durationUntilShrinkingStarts), startShrinkingAt: \(startShrinkingAt), now: \(ContinuousClock.now)).")
-//                            break delayLoop
-//                        }
                         break delayLoop
                     }
 

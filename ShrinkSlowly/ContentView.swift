@@ -134,7 +134,7 @@ struct NeverShrink: Layout {
 }
 
 struct ShrinkSlowlyLayout: Layout {
-    @MainActor @Binding var tick: Bool
+    @MainActor @Binding var shrink: Int
 
     let delay: ContinuousClock.Duration
     let speed: Double
@@ -166,10 +166,10 @@ struct ShrinkSlowlyLayout: Layout {
     class Cache {
         var current = [FuckingProposedViewSize: CGSize]()
         var target = [FuckingProposedViewSize: CGSize]()
-        var lastIncreaseTime: ContinuousClock.Instant? = nil
         var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
         var targetSize: CGSize? = nil
+        var lastShrink: Int = 0
         var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
         var shrinker: Task<Void, Never>? = nil
 
@@ -233,8 +233,8 @@ struct ShrinkSlowlyLayout: Layout {
 
                     return cachedValue
                 } else {
-                    if let lastIncreaseTime = cache.lastIncreaseTime, .zero >= lastIncreaseTime + delay - .now {
-                        log("Shrinking slightly (lastIncreaseTime: \(lastIncreaseTime), delay: \(delay), now: \(ContinuousClock.now))…")
+                    if 0 != shrink && shrink != cache.lastShrink {
+                        log("Shrinking slightly (towards target size \(cache.targetSize.orNilString), desired size \(cache.desiredSize.orNilString))…")
 
                         let slightlySmallerValue = CGSize(width: max(subviewResponse.width,
                                                                      cache.targetSize?.width ?? 0,
@@ -246,7 +246,7 @@ struct ShrinkSlowlyLayout: Layout {
                         cache.current[key] = slightlySmallerValue
                         return slightlySmallerValue
                     } else {
-                        log("Non-shrinker update (not currently shrinking or still in delay period; lastIncreaseTime: \(cache.lastIncreaseTime.orNilString)).")
+                        log("Non-shrinker update.")
                         return cachedValue
                     }
                 }
@@ -327,7 +327,8 @@ struct ShrinkSlowlyLayout: Layout {
                     }
 
                     log("TICK")
-                    tick.toggle()
+                    shrink &+= 1
+//                    cache?.targetSize = nil // Prevent any further shrinks due to unrelated re-renders in the meantime.
                     try await Task.sleep(for: .seconds(1) / speed)
                 }
             } catch {
@@ -349,6 +350,8 @@ struct ShrinkSlowlyLayout: Layout {
         log("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
 
         if proposal.isReal {
+            cache.lastShrink = shrink
+
             if let desiredSize = cache.desiredSize {
                 log("Desired size is \(desiredSize), recording that for \(ContinuousClock.now).")
                 cache.renderTimesPerDesiredSize[FuckingCGSize(desiredSize)] = .now
@@ -358,11 +361,7 @@ struct ShrinkSlowlyLayout: Layout {
                     cache.shrinker = nil
                 }
 
-                if desiredSize.encompasses(bounds.size) {
-                    log("Desired size \(desiredSize) encompasses actual rendered size \(bounds.size).  Don't shrink soon.")
-
-                    cache.lastIncreaseTime = .now
-                } else if nil == cache.shrinker && desiredSize.isSmallerThan(bounds.size) {
+                if nil == cache.shrinker && desiredSize.isSmallerThan(bounds.size) {
                     log("Desired size \(desiredSize) is smaller than current rendered size \(bounds.size), so starting shrinker…")
 
                     startShrinker(cache: &cache)
@@ -431,7 +430,7 @@ extension CGSize {
 
 @MainActor
 struct ShrinkSlowly<C: View>: View {
-    @State var tick = false
+    @State var shrink = 0
 
     let delay: Duration
     let speed: Double
@@ -447,9 +446,9 @@ struct ShrinkSlowly<C: View>: View {
     }
 
     var body: some View {
-        let _ = tick // Have to explicitly reference `tick` in order to be re-run when `tick` changes.
+        let _ = shrink // Have to explicitly reference `shrink` in order to be re-run when `shrink` changes.
 
-        ShrinkSlowlyLayout(tick: $tick,
+        ShrinkSlowlyLayout(shrink: $shrink,
                            delay: delay,
                            speed: speed) {
             content()

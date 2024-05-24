@@ -169,6 +169,7 @@ struct ShrinkSlowlyLayout: Layout {
         var lastIncreaseTime: ContinuousClock.Instant? = nil
         var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
+        var targetSize: CGSize? = nil
         var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
         var shrinker: Task<Void, Never>? = nil
 
@@ -234,8 +235,13 @@ struct ShrinkSlowlyLayout: Layout {
                 } else {
                     if let lastIncreaseTime = cache.lastIncreaseTime, .zero >= lastIncreaseTime + delay - .now {
                         log("Shrinking slightly (lastIncreaseTime: \(lastIncreaseTime), delay: \(delay), now: \(ContinuousClock.now))…")
-                        let slightlySmallerValue = CGSize(width: max(subviewResponse.width, cachedValue.width - 1),
-                                                          height: max(subviewResponse.height, cachedValue.height - 1))
+
+                        let slightlySmallerValue = CGSize(width: max(subviewResponse.width,
+                                                                     cache.targetSize?.width ?? 0,
+                                                                     cachedValue.width - 1),
+                                                          height: max(subviewResponse.height,
+                                                                      cache.targetSize?.height ?? 0,
+                                                                      cachedValue.height - 1))
 
                         cache.current[key] = slightlySmallerValue
                         return slightlySmallerValue
@@ -275,6 +281,8 @@ struct ShrinkSlowlyLayout: Layout {
         cache.shrinker = Task { @MainActor [weak cache] in
             do {
                 while !Task.isCancelled {
+                    var targetSize: CGSize? = nil
+
                     delayLoop: while true {
                         guard let cache else {
                             log("Cache gone, cancelling.")
@@ -286,24 +294,34 @@ struct ShrinkSlowlyLayout: Layout {
                             throw CancellationError()
                         }
 
+                        targetSize = desiredSize
+
                         let times = cache.renderTimesPerDesiredSize.sorted { $0.key.width < $1.key.width }
 
-                        for (size, time) in times {
+                        for (wrappedSize, time) in times {
+                            let size = wrappedSize.asCGSize
+
                             log("\(size) last desired at \(time).")
 
                             let timeout = time + delay
                             let timeRemaining = timeout - .now
 
-                            if (cache.lastRenderedSize?.isSmallerThan(size.asCGSize) ?? false) && .zero < timeRemaining {
-                                log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
-                                try await Task.sleep(for: timeRemaining)
-                                continue delayLoop
+                            if .zero < timeRemaining {
+                                if desiredSize.isSmallerThan(size) {
+                                    targetSize = size
+                                }
+
+                                if cache.lastRenderedSize?.isSmallerThan(size) ?? false {
+                                    log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
+                                    try await Task.sleep(for: timeRemaining)
+                                    continue delayLoop
+                                }
                             }
                         }
 
-                        log("No delay left on shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize).")
+                        log("No delay left on shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize) (current target size \(targetSize.orNilString)).")
 
-                        break delayLoop
+                        cache.targetSize = targetSize
 
 //                        guard let lastIncreaseTime = cache.lastIncreaseTime else {
 //                            log("No last increase time!")
@@ -320,6 +338,7 @@ struct ShrinkSlowlyLayout: Layout {
 //                            log("No delay (durationUntilShrinkingStarts: \(durationUntilShrinkingStarts), startShrinkingAt: \(startShrinkingAt), now: \(ContinuousClock.now)).")
 //                            break delayLoop
 //                        }
+                        break delayLoop
                     }
 
                     log("TICK")

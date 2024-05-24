@@ -168,7 +168,7 @@ struct ShrinkSlowlyLayout: Layout {
         var target = [FuckingProposedViewSize: CGSize]()
         var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
-        var targetSize: CGSize? = nil
+        var currentMinimumSize: CGSize = .zero
         var lastShrink: Int = 0
         var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
         var shrinker: Task<Void, Never>? = nil
@@ -206,67 +206,11 @@ struct ShrinkSlowlyLayout: Layout {
             if cache.desiredSize != subviewResponse {
                 log("Desired size:", subviewResponse)
                 cache.desiredSize = subviewResponse
+                cache.currentMinimumSize.union(with: subviewResponse)
             }
         }
 
-        let key = FuckingProposedViewSize(proposal)
-
-        cache.target[key] = subviewResponse
-
-        let result: CGSize
-
-        if let cachedValue = cache.current[key] {
-//            if nil == cache.shrinker && subviewResponse != cachedValue {
-//                log("Target differs from current value for \(proposal.description); needs to shrink.")
-//            }
-
-            if cachedValue.width >= subviewResponse.width && cachedValue.height >= subviewResponse.height {
-                log("Cached value for \(proposal.description) is \(cachedValue) which is >= subviewResponse \(subviewResponse).")
-
-                if subviewResponse == cachedValue {
-                    if nil != cache.shrinker && cache.target == cache.current {
-                        log("Target met - no longer need to shrink.")
-
-                        cache.shrinker?.cancel()
-                        cache.shrinker = nil
-                    }
-
-                    return cachedValue
-                } else {
-                    if 0 != shrink && shrink != cache.lastShrink {
-                        log("Shrinking slightly (towards target size \(cache.targetSize.orNilString), desired size \(cache.desiredSize.orNilString))…")
-
-                        let slightlySmallerValue = CGSize(width: max(subviewResponse.width,
-                                                                     cache.targetSize?.width ?? 0,
-                                                                     cachedValue.width - 1),
-                                                          height: max(subviewResponse.height,
-                                                                      cache.targetSize?.height ?? 0,
-                                                                      cachedValue.height - 1))
-
-                        cache.current[key] = slightlySmallerValue
-                        return slightlySmallerValue
-                    } else {
-                        log("Non-shrinker update.")
-                        return cachedValue
-                    }
-                }
-            }
-
-            result = CGSize(width: max(subviewResponse.width,
-                                       cachedValue.width),
-                            height: max(subviewResponse.height,
-                                        cachedValue.height))
-
-            log("Cached value for \(proposal.description) is \(cachedValue) which is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
-        } else {
-            result = subviewResponse
-
-            log("No cached value for \(proposal.description); using subviewResponse:", subviewResponse)
-        }
-
-        cache.current[key] = result
-
-        return result
+        return subviewResponse.unioned(with: cache.currentMinimumSize)
     }
 
     @MainActor
@@ -280,55 +224,50 @@ struct ShrinkSlowlyLayout: Layout {
 
         cache.shrinker = Task { @MainActor [weak cache] in
             do {
-                while !Task.isCancelled {
-                    var targetSize: CGSize? = nil
-
-                    delayLoop: while true {
-                        guard let cache else {
-                            log("Cache gone, cancelling.")
-                            throw CancellationError()
-                        }
-
-                        guard let desiredSize = cache.desiredSize else {
-                            log("🐞 Don't know my own desired size, so can't shrink to anything.  Cancelling.")
-                            throw CancellationError()
-                        }
-
-                        targetSize = desiredSize
-
-                        let times = cache.renderTimesPerDesiredSize.sorted { $0.key.width < $1.key.width }
-
-                        for (wrappedSize, time) in times {
-                            let size = wrappedSize.asCGSize
-
-                            log("\(size) last desired at \(time).")
-
-                            let timeout = time + delay
-                            let timeRemaining = timeout - .now
-
-                            if .zero < timeRemaining {
-                                if desiredSize.isSmallerThan(size) {
-                                    targetSize = size
-                                }
-
-                                if cache.lastRenderedSize?.isSmallerThan(size) ?? false {
-                                    log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
-                                    try await Task.sleep(for: timeRemaining)
-                                    continue delayLoop
-                                }
-                            }
-                        }
-
-                        log("No delay left on shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize) (current target size \(targetSize.orNilString)).")
-
-                        cache.targetSize = targetSize
-
-                        break delayLoop
+                loop: while !Task.isCancelled {
+                    guard let cache else {
+                        log("Cache gone, cancelling.")
+                        throw CancellationError()
                     }
+
+                    guard let desiredSize = cache.desiredSize else {
+                        log("🐞 Don't know my own desired size, so can't shrink to anything.  Cancelling.")
+                        throw CancellationError()
+                    }
+
+                    var minimumSize = desiredSize
+
+                    let times = cache.renderTimesPerDesiredSize.sorted { $0.key.width < $1.key.width }
+
+                    for (wrappedSize, time) in times {
+                        let size = wrappedSize.asCGSize
+
+                        log("\(size) last desired at \(time).")
+
+                        let timeout = time + delay
+                        let timeRemaining = timeout - .now
+
+                        if .zero < timeRemaining {
+                            minimumSize.union(with: size)
+
+                            if minimumSize.encompasses(cache.lastRenderedSize ?? .zero) {
+//                            if cache.lastRenderedSize?.isSmallerThan(minimumSize) ?? false {
+                                log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
+                                try await Task.sleep(for: timeRemaining)
+                                continue loop
+                            }
+                        } else {
+                            cache.renderTimesPerDesiredSize.removeValue(forKey: wrappedSize)
+                        }
+                    }
+
+                    cache.currentMinimumSize = CGSize(width: max((cache.lastRenderedSize?.width ?? 1) - 1, minimumSize.width),
+                                                      height: max((cache.lastRenderedSize?.height ?? 1) - 1, minimumSize.height))
+
+                    log("Shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize) (current minimum size \(minimumSize)).  Current target: \(cache.currentMinimumSize)")
 
                     log("TICK")
                     shrink &+= 1
-//                    cache?.targetSize = nil // Prevent any further shrinks due to unrelated re-renders in the meantime.
                     try await Task.sleep(for: .seconds(1) / speed)
                 }
             } catch {
@@ -425,6 +364,21 @@ extension CGSize {
 
     func isSmallerThan(_ other: CGSize) -> Bool {
         self.width < other.width || self.height < other.height
+    }
+
+    mutating func union(with other: CGSize) {
+        if other.width > self.width {
+            self.width = other.width
+        }
+
+        if other.height > self.height {
+            self.height = other.height
+        }
+    }
+
+    func unioned(with other: CGSize) -> CGSize {
+        CGSize(width: max(self.width, other.width),
+               height: max(self.height, other.height))
     }
 }
 

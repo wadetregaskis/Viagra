@@ -134,7 +134,7 @@ struct NeverShrink: Layout {
 }
 
 struct ShrinkSlowlyLayout: Layout {
-    @MainActor @Binding var shrink: Int
+    @MainActor @Binding var currentMinimumSize: CGSize
 
     let delay: ContinuousClock.Duration
     let speed: Double
@@ -168,12 +168,31 @@ struct ShrinkSlowlyLayout: Layout {
         var target = [FuckingProposedViewSize: CGSize]()
         var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
-        var currentMinimumSize: CGSize = .zero
-        var lastShrink: Int = 0
         var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
         var shrinker: Task<Void, Never>? = nil
 
         init() {}
+
+        func currentMinimumSize(delay: ContinuousClock.Duration) -> (size: CGSize, timeRemaining: ContinuousClock.Duration)? {
+            let times = renderTimesPerDesiredSize.sorted { $0.key.width > $1.key.width }
+
+            for (wrappedSize, time) in times {
+                let size = wrappedSize.asCGSize
+
+                log("\(size) last desired at \(time).")
+
+                let timeout = time + delay
+                let timeRemaining = timeout - .now
+
+                if .zero < timeRemaining {
+                    return (size, timeRemaining)
+                } else {
+                    renderTimesPerDesiredSize.removeValue(forKey: wrappedSize)
+                }
+            }
+
+            return nil
+        }
     }
 
     func makeCache(subviews: Self.Subviews) -> Self.Cache {
@@ -198,7 +217,9 @@ struct ShrinkSlowlyLayout: Layout {
         let subviewResponse = subview.sizeThatFits(proposal)
 
         if proposal.isReal {
-            if let lastDesiredSize = cache.desiredSize {
+            let lastDesiredSize = cache.desiredSize
+
+            if let lastDesiredSize {
                 log("Last desired size was \(lastDesiredSize) - recording to for time \(ContinuousClock.now).")
                 cache.renderTimesPerDesiredSize[FuckingCGSize(lastDesiredSize)] = .now
             }
@@ -206,11 +227,19 @@ struct ShrinkSlowlyLayout: Layout {
             if cache.desiredSize != subviewResponse {
                 log("Desired size:", subviewResponse)
                 cache.desiredSize = subviewResponse
-                cache.currentMinimumSize.union(with: subviewResponse)
             }
-        }
 
-        return subviewResponse.unioned(with: cache.currentMinimumSize)
+            let response = subviewResponse
+                .unioned(with: currentMinimumSize)
+                .unioned(with: cache.currentMinimumSize(delay: delay)?.size ?? .zero)
+
+            log("sizeThatFits(\(proposal), …) -> \(response)")
+
+            return response
+        } else {
+            log("sizeThatFits(\(proposal), …) -> \(subviewResponse) [unmodified]")
+            return subviewResponse
+        }
     }
 
     @MainActor
@@ -237,37 +266,24 @@ struct ShrinkSlowlyLayout: Layout {
 
                     var minimumSize = desiredSize
 
-                    let times = cache.renderTimesPerDesiredSize.sorted { $0.key.width < $1.key.width }
+                    if let (size, timeRemaining) = cache.currentMinimumSize(delay: delay) {
+                        minimumSize.union(with: size)
 
-                    for (wrappedSize, time) in times {
-                        let size = wrappedSize.asCGSize
-
-                        log("\(size) last desired at \(time).")
-
-                        let timeout = time + delay
-                        let timeRemaining = timeout - .now
-
-                        if .zero < timeRemaining {
-                            minimumSize.union(with: size)
-
-                            if minimumSize.encompasses(cache.lastRenderedSize ?? .zero) {
-//                            if cache.lastRenderedSize?.isSmallerThan(minimumSize) ?? false {
-                                log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends (\(time) + \(delay) > \(ContinuousClock.now)).")
-                                try await Task.sleep(for: timeRemaining)
-                                continue loop
-                            }
-                        } else {
-                            cache.renderTimesPerDesiredSize.removeValue(forKey: wrappedSize)
+                        if minimumSize.encompasses(cache.lastRenderedSize ?? .zero) {
+                            log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends.")
+                            try await Task.sleep(for: timeRemaining)
+                            continue loop
                         }
                     }
 
-                    cache.currentMinimumSize = CGSize(width: max((cache.lastRenderedSize?.width ?? 1) - 1, minimumSize.width),
-                                                      height: max((cache.lastRenderedSize?.height ?? 1) - 1, minimumSize.height))
+                    let newMinimumSize = CGSize(width: max((cache.lastRenderedSize?.width ?? 1) - 1, minimumSize.width),
+                                                height: max((cache.lastRenderedSize?.height ?? 1) - 1, minimumSize.height))
 
-                    log("Shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize) (current minimum size \(minimumSize)).  Current target: \(cache.currentMinimumSize)")
+                    if currentMinimumSize != newMinimumSize {
+                        log("Shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize) (current minimum size \(minimumSize)).  Current target: \(currentMinimumSize)")
+                        currentMinimumSize = newMinimumSize
+                    }
 
-                    log("TICK")
-                    shrink &+= 1
                     try await Task.sleep(for: .seconds(1) / speed)
                 }
             } catch {
@@ -289,8 +305,6 @@ struct ShrinkSlowlyLayout: Layout {
         log("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
 
         if proposal.isReal {
-            cache.lastShrink = shrink
-
             if let desiredSize = cache.desiredSize {
                 log("Desired size is \(desiredSize), recording that for \(ContinuousClock.now).")
                 cache.renderTimesPerDesiredSize[FuckingCGSize(desiredSize)] = .now
@@ -384,7 +398,7 @@ extension CGSize {
 
 @MainActor
 struct ShrinkSlowly<C: View>: View {
-    @State var shrink = 0
+    @State var currentMinimumSize: CGSize = .zero
 
     let delay: Duration
     let speed: Double
@@ -400,9 +414,9 @@ struct ShrinkSlowly<C: View>: View {
     }
 
     var body: some View {
-        let _ = shrink // Have to explicitly reference `shrink` in order to be re-run when `shrink` changes.
+        let _ = currentMinimumSize // Have to explicitly reference `shrink` in order to be re-run when `shrink` changes.
 
-        ShrinkSlowlyLayout(shrink: $shrink,
+        ShrinkSlowlyLayout(currentMinimumSize: $currentMinimumSize,
                            delay: delay,
                            speed: speed) {
             content()

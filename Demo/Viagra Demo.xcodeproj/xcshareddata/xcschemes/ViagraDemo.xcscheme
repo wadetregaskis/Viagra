@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "758C78332BF964CF00E1AD3B"
-               BuildableName = "ShrinkSlowly.app"
-               BlueprintName = "ShrinkSlowly"
-               ReferencedContainer = "container:ShrinkSlowly.xcodeproj">
+               BuildableName = "ViagraDemo.app"
+               BlueprintName = "ViagraDemo"
+               ReferencedContainer = "container:Viagra Demo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "758C78332BF964CF00E1AD3B"
-            BuildableName = "ShrinkSlowly.app"
-            BlueprintName = "ShrinkSlowly"
-            ReferencedContainer = "container:ShrinkSlowly.xcodeproj">
+            BuildableName = "ViagraDemo.app"
+            BlueprintName = "ViagraDemo"
+            ReferencedContainer = "container:Viagra Demo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "758C78332BF964CF00E1AD3B"
-            BuildableName = "ShrinkSlowly.app"
-            BlueprintName = "ShrinkSlowly"
-            ReferencedContainer = "container:ShrinkSlowly.xcodeproj">
+            BuildableName = "ViagraDemo.app"
+            BlueprintName = "ViagraDemo"
+            ReferencedContainer = "container:Viagra Demo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

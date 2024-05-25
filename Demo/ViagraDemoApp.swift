@@ -1,6 +1,6 @@
 //
-//  ShrinkSlowlyApp.swift
-//  ShrinkSlowly
+//  ViagraDemoApp.swift
+//  ViagraDemo
 //
 //  Created by Wade Tregaskis on 18/5/2024.
 //

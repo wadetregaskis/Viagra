@@ -7,19 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		758C78382BF964CF00E1AD3B /* ShrinkSlowlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758C78372BF964CF00E1AD3B /* ShrinkSlowlyApp.swift */; };
+		758C78382BF964CF00E1AD3B /* ViagraDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758C78372BF964CF00E1AD3B /* ViagraDemoApp.swift */; };
 		758C783A2BF964CF00E1AD3B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758C78392BF964CF00E1AD3B /* ContentView.swift */; };
 		758C783C2BF964D100E1AD3B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 758C783B2BF964D100E1AD3B /* Assets.xcassets */; };
 		758C783F2BF964D100E1AD3B /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 758C783E2BF964D100E1AD3B /* Preview Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		758C78342BF964CF00E1AD3B /* ShrinkSlowly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShrinkSlowly.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		758C78372BF964CF00E1AD3B /* ShrinkSlowlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShrinkSlowlyApp.swift; sourceTree = "<group>"; };
+		758C78342BF964CF00E1AD3B /* ViagraDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ViagraDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		758C78372BF964CF00E1AD3B /* ViagraDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViagraDemoApp.swift; sourceTree = "<group>"; };
 		758C78392BF964CF00E1AD3B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		758C783B2BF964D100E1AD3B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		758C783E2BF964D100E1AD3B /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		758C78402BF964D100E1AD3B /* ShrinkSlowly.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShrinkSlowly.entitlements; sourceTree = "<group>"; };
+		758C78402BF964D100E1AD3B /* ViagraDemo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ViagraDemo.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,7 +36,11 @@
 		758C782B2BF964CF00E1AD3B = {
 			isa = PBXGroup;
 			children = (
-				758C78362BF964CF00E1AD3B /* ShrinkSlowly */,
+				758C78372BF964CF00E1AD3B /* ViagraDemoApp.swift */,
+				758C78392BF964CF00E1AD3B /* ContentView.swift */,
+				758C783B2BF964D100E1AD3B /* Assets.xcassets */,
+				758C78402BF964D100E1AD3B /* ViagraDemo.entitlements */,
+				758C783D2BF964D100E1AD3B /* Preview Content */,
 				758C78352BF964CF00E1AD3B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -44,21 +48,9 @@
 		758C78352BF964CF00E1AD3B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				758C78342BF964CF00E1AD3B /* ShrinkSlowly.app */,
+				758C78342BF964CF00E1AD3B /* ViagraDemo.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		758C78362BF964CF00E1AD3B /* ShrinkSlowly */ = {
-			isa = PBXGroup;
-			children = (
-				758C78372BF964CF00E1AD3B /* ShrinkSlowlyApp.swift */,
-				758C78392BF964CF00E1AD3B /* ContentView.swift */,
-				758C783B2BF964D100E1AD3B /* Assets.xcassets */,
-				758C78402BF964D100E1AD3B /* ShrinkSlowly.entitlements */,
-				758C783D2BF964D100E1AD3B /* Preview Content */,
-			);
-			path = ShrinkSlowly;
 			sourceTree = "<group>";
 		};
 		758C783D2BF964D100E1AD3B /* Preview Content */ = {
@@ -72,9 +64,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		758C78332BF964CF00E1AD3B /* ShrinkSlowly */ = {
+		758C78332BF964CF00E1AD3B /* ViagraDemo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 758C78432BF964D100E1AD3B /* Build configuration list for PBXNativeTarget "ShrinkSlowly" */;
+			buildConfigurationList = 758C78432BF964D100E1AD3B /* Build configuration list for PBXNativeTarget "ViagraDemo" */;
 			buildPhases = (
 				758C78302BF964CF00E1AD3B /* Sources */,
 				758C78312BF964CF00E1AD3B /* Frameworks */,
@@ -84,9 +76,9 @@
 			);
 			dependencies = (
 			);
-			name = ShrinkSlowly;
+			name = ViagraDemo;
 			productName = ShrinkSlowly;
-			productReference = 758C78342BF964CF00E1AD3B /* ShrinkSlowly.app */;
+			productReference = 758C78342BF964CF00E1AD3B /* ViagraDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -104,7 +96,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 758C782F2BF964CF00E1AD3B /* Build configuration list for PBXProject "ShrinkSlowly" */;
+			buildConfigurationList = 758C782F2BF964CF00E1AD3B /* Build configuration list for PBXProject "Viagra Demo" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -117,7 +109,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				758C78332BF964CF00E1AD3B /* ShrinkSlowly */,
+				758C78332BF964CF00E1AD3B /* ViagraDemo */,
 			);
 		};
 /* End PBXProject section */
@@ -140,7 +132,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				758C783A2BF964CF00E1AD3B /* ContentView.swift in Sources */,
-				758C78382BF964CF00E1AD3B /* ShrinkSlowlyApp.swift in Sources */,
+				758C78382BF964CF00E1AD3B /* ViagraDemoApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,11 +262,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ShrinkSlowly/ShrinkSlowly.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ViagraDemo.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"ShrinkSlowly/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "Preview\\ Content";
 				DEVELOPMENT_TEAM = WG3H77P6RA;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -285,7 +278,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.wadetregaskis.ShrinkSlowly;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wadetregaskis.ViagraDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -297,11 +290,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ShrinkSlowly/ShrinkSlowly.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ViagraDemo.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"ShrinkSlowly/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "Preview\\ Content";
 				DEVELOPMENT_TEAM = WG3H77P6RA;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -312,7 +306,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.wadetregaskis.ShrinkSlowly;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wadetregaskis.ViagraDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -322,7 +316,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		758C782F2BF964CF00E1AD3B /* Build configuration list for PBXProject "ShrinkSlowly" */ = {
+		758C782F2BF964CF00E1AD3B /* Build configuration list for PBXProject "Viagra Demo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				758C78412BF964D100E1AD3B /* Debug */,
@@ -331,7 +325,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		758C78432BF964D100E1AD3B /* Build configuration list for PBXNativeTarget "ShrinkSlowly" */ = {
+		758C78432BF964D100E1AD3B /* Build configuration list for PBXNativeTarget "ViagraDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				758C78442BF964D100E1AD3B /* Debug */,

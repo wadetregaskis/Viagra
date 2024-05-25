@@ -5,6 +5,7 @@
 //  Created by Wade Tregaskis on 18/5/2024.
 //
 
+import Darwin
 import SwiftUI
 
 let startTime = ContinuousClock.now
@@ -424,6 +425,7 @@ struct ShrinkSlowly<C: View>: View {
 
 struct ContentView: View {
     @State var width: CGFloat = 400
+    @State var x = ""
 
     var body: some View {
         VStack(spacing: 10) {
@@ -540,6 +542,32 @@ struct ContentView: View {
             }
 
             HStack {
+                Text("Naive")
+                Text(x)
+                Text("Right")
+            }
+
+            HStack {
+                Text("ShrinkSlowly")
+
+                ShrinkSlowly(delay: .seconds(1)) {
+                    Text(x)
+                }
+
+                Text("1s delay")
+            }
+
+            HStack {
+                Text("ShrinkSlowly")
+
+                ShrinkSlowly {
+                    Text(x)
+                }
+
+                Text("3s delay (default)")
+            }
+
+            HStack {
                 Button("Shrink") {
                     width /= 2
                     log("New width:", width)
@@ -553,6 +581,13 @@ struct ContentView: View {
         }
         .frame(width: 1000, height: 500)
         .padding()
+        .task {
+            while !Task.isCancelled {
+                let now = Date.now.timeIntervalSinceReferenceDate
+                x = String(repeating: "█", count: Int(fabs(sin(now) + sin(now * 1.5)) * 20))
+                try? await Task.sleep(for: .milliseconds(1 / 60.0))
+            }
+        }
     }
 }
 

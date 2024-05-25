@@ -426,7 +426,7 @@ struct ContentView: View {
     @State var width: CGFloat = 400
 
     var body: some View {
-        VStack {
+        VStack(spacing: 10) {
             let text = String(repeating: "•", count: Int(width) / 5)
 
             HStack {

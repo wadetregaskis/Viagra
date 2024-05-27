@@ -250,7 +250,7 @@ struct ShrinkSlowlyLayout: Layout {
             return
         }
 
-        log("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
+        log("Placing subview in bounds \(bounds) with proposal \(proposal.description)\(proposal.isReal ? "" : " [not considered real]").")
 
         if proposal.isReal {
             if let desiredSize = cache.desiredSize {

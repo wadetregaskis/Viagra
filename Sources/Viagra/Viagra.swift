@@ -377,11 +377,13 @@ public extension View {
     ///
     /// Normally SwiftUI views shrink (and enlarge) immediately whenever the layout changes (whether a result of an internal change, such as their content changing, or an external change, such as a window resizing).
     ///
-    /// This modifier allows the view to expand, but never shrink.
+    /// This modifier allows the view to enlarge, but never shrink.
     ///
     /// It works best when expansion occurs in only one direction, or when the view has fixed maximums in at least one dimension (e.g. a `Text` view with a fixed maximum width, or inside a container which imposes a fixed maximum width).  You may see odd and undesirable behaviour in cases such as windows that try to automatically fit their contents.
     ///
     /// Make sure not to use any of the [`frame`](https://developer.apple.com/documentation/swiftui/view/frame(width:height:alignment:)) modifiers after this one, as they will override.  It's fine to use the `frame` modifiers _before_ this one.
+    ///
+    /// This is conceptually a specialisation of `shrinkSlowly` with an infinite delay, but its implementation is more efficient because its task is simpler.  Always use this in preference to `neverShrink` when you don't actually want shrinkage.
     ///
     /// - Returns: The modified view.
     @MainActor
@@ -400,6 +402,8 @@ public extension View {
     /// It works best when expansion occurs in only one direction, or when the view has fixed maximums in at least one dimension (e.g. a `Text` view with a fixed maximum width, or inside a container which imposes a fixed maximum width).  You may see odd and undesirable behaviour in cases such as windows that try to automatically fit their contents.
     ///
     /// Make sure not to use any of the [`frame`](https://developer.apple.com/documentation/swiftui/view/frame(width:height:alignment:)) modifiers after this one, as they will override.  It's fine to use the `frame` modifiers _before_ this one.
+    ///
+    /// If you want the view to _never_ shrink, use `neverShrink` instead (it is functionally equivalent to an infinite delay, but more efficient).
     ///
     /// - Parameters:
     ///   - delay: The amount of time to wait before shrinking.  Defaults to three seconds.

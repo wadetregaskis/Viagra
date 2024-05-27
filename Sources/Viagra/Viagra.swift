@@ -87,9 +87,7 @@ struct NeverShrink: Layout {
 
         log("Placing subview in bounds \(bounds) with proposal \(proposal).")
 
-        subview.place(at: bounds.origin, proposal: proposal) // ❌
-//        subview.place(at: bounds.origin, proposal: .unspecified) // ❌
-//        subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size)) // ❌
+        subview.place(at: bounds.origin, proposal: proposal)
     }
 }
 

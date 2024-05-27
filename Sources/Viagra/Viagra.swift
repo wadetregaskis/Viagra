@@ -270,7 +270,7 @@ struct ShrinkSlowlyLayout: Layout {
             }
 
             if cache.lastRenderedSize != bounds.size {
-//                log("Previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
+                log("Previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")
 
                 if !(cache.lastRenderedSize?.encompasses(bounds.size) ?? false) {
                     log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")

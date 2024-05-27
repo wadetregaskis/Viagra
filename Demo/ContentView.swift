@@ -11,21 +11,11 @@ import Viagra
 
 
 struct Custom: CustomAnimation {
-//    func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic {
-//        log("Dud animate")
-//        return nil
-//    }
-
     let duration = 1.0
 
     typealias CGSizeAP = AnimatablePair<AnimatablePair<CGFloat, CGFloat>, AnimatablePair<CGFloat, CGFloat>>
 
     func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic {
-
-//    func animate(value: CGSizeAP,
-//                 time: TimeInterval,
-//                 context: inout AnimationContext<CGSizeAP>) -> CGSizeAP? {
-
         guard let realValue = value as? CGSizeAP else {
             guard let _ = value as? Double else {
                 var fuckYouSwift = ""

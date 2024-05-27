@@ -219,6 +219,13 @@ struct ShrinkSlowlyLayout: Layout {
 
                         if minimumSize.encompasses(cache.lastRenderedSize ?? .zero) {
                             log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends.")
+
+                            if currentMinimumSize != minimumSize {
+                                // If we don't "lock" the minimum size here, there's a race condition whereby the view is redrawn after the delay has passed but before the shrinker returns from the sleep call (below).  In that case, `currentMinimumSize` will still be set to whatever it was earlier, which may be smaller than the currently rendered size, resulting in sizeThatFits not properly restricting its results to the current size, and thus abrupt and too-rapid shrinkage.  This is easy to reproduce if you add an non-trivial additional delay to the sleep call below (e.g. five seconds), and cause the content view to reduce its desired size [by more than one point] after the real delay has expired but before the artificially extended sleep call below returns.  It may help to force spurious redraws as well (e.g. resize the containing window continuously).
+                                log("Locking minimum size at \(minimumSize) until the delay ends.")
+                                currentMinimumSize = minimumSize
+                            }
+
                             try await Task.sleep(for: timeRemaining)
                             continue loop
                         }
@@ -272,8 +279,14 @@ struct ShrinkSlowlyLayout: Layout {
             if cache.lastRenderedSize != bounds.size {
                 log("Previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")
 
-                if !(cache.lastRenderedSize?.encompasses(bounds.size) ?? false) {
-                    log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")
+                if let lastRenderedSize = cache.lastRenderedSize {
+                    // This assertion is to catch unexpected (or unexpectedly rapid) shrinkage.  This has caught at least one sneaky bug (a race condition, of sorts, between the shrinker sleeping off a delay and the view re-rendering for other reasons, before the shrinker took steps to lock the view's size while it's sleeping off the delay).  All going well there are no more such bugs, so it's no longer necessary.  It is possible, however, that it'll be tripped in situations which aren't technically just bugs in this code but perhaps just bad interactions with other SwiftUI views or layouts.  If you think you've found such a case, please report it.  You can disable the assertion in the meantime, but better to have the problem fixed properly.
+                    assert(lastRenderedSize.width - 1.1 <= bounds.size.width
+                           && lastRenderedSize.height - 1.1 <= bounds.size.height, "View shrank by more than one point between renders - shouldn't be possible.  Last rendered size was \(lastRenderedSize), new size is \(bounds.size).")
+
+                    if lastRenderedSize.isSmallerThan(bounds.size) {
+                        log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")
+                    }
                 }
 
                 cache.lastRenderedSize = bounds.size

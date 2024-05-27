@@ -99,16 +99,6 @@ struct ShrinkSlowlyLayout: Layout {
     let delay: ContinuousClock.Duration
     let speed: Double
 
-    struct FuckingProposedViewSize: Hashable {
-        var width: CGFloat?
-        var height: CGFloat?
-
-        init(_ proposal: ProposedViewSize) {
-            self.width = proposal.width
-            self.height = proposal.height
-        }
-    }
-
     struct FuckingCGSize: Hashable {
         var width: CGFloat
         var height: CGFloat

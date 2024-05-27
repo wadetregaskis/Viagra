@@ -41,3 +41,7 @@ This is good for views which may need to expand temporarily, but which generally
 ## Demo app
 
 A demo application is included (in the "Demo" subfolder) showing some basic use-cases.
+
+https://github.com/wadetregaskis/Viagra/assets/863283/f885cbce-944b-4e73-aa2d-3c91cce34dcd
+
+Notice in particular the subtle but lovely difference in even a simple text view showing a numeric value - by default jittery and unsure of itself, applying Viagra makes the text view confident and consistent.

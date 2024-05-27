@@ -175,11 +175,13 @@ struct ShrinkSlowlyLayout: Layout {
                 cache.desiredSize = subviewResponse
             }
 
+            let delayLimit = cache.currentMinimumSize(delay: delay)
+
             let response = subviewResponse
                 .unioned(with: currentMinimumSize)
-                .unioned(with: cache.currentMinimumSize(delay: delay)?.size ?? .zero)
+                .unioned(with: delayLimit?.size ?? .zero)
 
-            log("sizeThatFits(\(proposal), …) -> \(response)")
+            log("sizeThatFits(\(proposal), …) -> \(response) [\(subviewResponse) ∪ \(currentMinimumSize) ∪ \(delayLimit.orNilString)]")
 
             return response
         } else {

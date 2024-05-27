@@ -25,61 +25,38 @@ func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {}
 
 
 struct NeverShrink: Layout {
-    struct FuckingProposedViewSize: Hashable {
-        var width: CGFloat?
-        var height: CGFloat?
-
-        init(_ proposal: ProposedViewSize) {
-            self.width = proposal.width
-            self.height = proposal.height
-        }
-    }
-
-    typealias Cache = [FuckingProposedViewSize: CGSize]
+    typealias Cache = CGSize
 
     func makeCache(subviews: Self.Subviews) -> Self.Cache {
         log("Making cache.")
-        return Cache()
+        return .zero
     }
 
     func updateCache(_ cache: inout Self.Cache,
                      subviews: Self.Subviews) {
-        log("No update cache for you!")
+        // Do nothing; the default implementation destroys the cache, so we have to override it merely to stop that.
     }
 
     func sizeThatFits(proposal: ProposedViewSize,
                       subviews: Subviews,
                       cache: inout Cache) -> CGSize {
         guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("NeverShrink only works with one subview; found:", dump(subviews))
             return CGSize(width: 0, height: 0)
         }
 
         let subviewResponse = subview.sizeThatFits(proposal)
 
-        let key = FuckingProposedViewSize(proposal)
-        let result: CGSize
+        if proposal.isReal {
+            let response = subviewResponse.unioned(with: cache)
 
-        if let cachedValue = cache[key] {
-            if cachedValue.width >= subviewResponse.width && cachedValue.height >= subviewResponse.height {
-                log("Cached value \(cachedValue) is >= subviewResponse \(subviewResponse).")
-                return cachedValue
-            }
+            log("sizeThatFits(\(proposal), …) -> \(response) [\(subviewResponse) ∪ \(cache)]")
 
-            result = CGSize(width: max(subviewResponse.width,
-                                       cachedValue.width),
-                            height: max(subviewResponse.height,
-                                        cachedValue.height))
-
-            log("Cached value \(cachedValue) is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
+            return response
         } else {
-            log("No cached value for \(key); using subviewResponse:", subviewResponse)
-            result = subviewResponse
+            log("sizeThatFits(\(proposal), …) -> \(subviewResponse) [unmodified]")
+            return subviewResponse
         }
-
-        cache[key] = result
-
-        return result
     }
 
     func placeSubviews(in bounds: CGRect,
@@ -87,11 +64,15 @@ struct NeverShrink: Layout {
                        subviews: Subviews,
                        cache: inout Cache) {
         guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("NeverShrink only works with one subview; found:", dump(subviews))
             return
         }
 
-        log("Placing subview in bounds \(bounds) with proposal \(proposal).")
+        log("Placing subview in bounds \(bounds) with proposal \(proposal.description)\(proposal.isReal ? "" : " [not considered real]").")
+
+        if proposal.isReal {
+            cache.union(with: bounds.size)
+        }
 
         subview.place(at: bounds.origin, proposal: proposal)
     }

@@ -3,7 +3,7 @@
 import SwiftUI
 
 
-#if true // Rudimentary control over whether logging is emitted.  Ideally there'd be just some simple global variable that could be manipulated at runtime, but unfortunately SwiftUI doesn't formally promise to only invoke key methods (that want to include logging) from @MainActor, and globals must be bound to a specific isolation domain (in Swift 6 onwards).  And I don't really want to force use of a specific logging system (that might otherwise provide a way to control logging dynamically).  Perhaps once Atomics are sufficiently available, from the Swift standard library, this can be addressed.
+#if false // Rudimentary control over whether logging is emitted.  Ideally there'd be just some simple global variable that could be manipulated at runtime, but unfortunately SwiftUI doesn't formally promise to only invoke key methods (that want to include logging) from @MainActor, and globals must be bound to a specific isolation domain (in Swift 6 onwards).  And I don't really want to force use of a specific logging system (that might otherwise provide a way to control logging dynamically).  Perhaps once Atomics are sufficiently available, from the Swift standard library, this can be addressed.
 let startTime = ContinuousClock.now
 
 func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {

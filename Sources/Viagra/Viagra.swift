@@ -280,7 +280,7 @@ struct ShrinkSlowlyLayout: Layout {
             }
         }
 
-        subview.place(at: bounds.origin, proposal: proposal) // ❌
+        subview.place(at: bounds.origin, proposal: proposal)
     }
 }
 

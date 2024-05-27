@@ -7,22 +7,8 @@
 
 import Darwin
 import SwiftUI
+import Viagra
 
-let startTime = ContinuousClock.now
-
-func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {
-    var message = ""
-
-    for item in items {
-        if !message.isEmpty {
-            message.append(separator)
-        }
-
-        message.append(String(describing: item))
-    }
-
-    print("[", (.now - startTime).formatted(.time(pattern: .hourMinuteSecond(padHourToLength: 0, fractionalSecondsLength: 3))), "] ", message, separator: "", terminator: terminator)
-}
 
 struct Custom: CustomAnimation {
 //    func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic {
@@ -44,7 +30,7 @@ struct Custom: CustomAnimation {
             guard let _ = value as? Double else {
                 var fuckYouSwift = ""
                 dump(context, to: &fuckYouSwift)
-                log("💩 value:", value, "context:", fuckYouSwift)
+                print("💩 value:", value, "context:", fuckYouSwift)
                 return nil
             }
 
@@ -59,532 +45,224 @@ struct Custom: CustomAnimation {
     }
 }
 
-struct NeverShrink: Layout {
-    struct FuckingProposedViewSize: Hashable {
-        var width: CGFloat?
-        var height: CGFloat?
-
-        init(_ proposal: ProposedViewSize) {
-            self.width = proposal.width
-            self.height = proposal.height
-        }
-    }
-
-    typealias Cache = [FuckingProposedViewSize: CGSize]
-
-    func makeCache(subviews: Self.Subviews) -> Self.Cache {
-        log("Making cache.")
-        return Cache()
-    }
-
-    func updateCache(_ cache: inout Self.Cache,
-                     subviews: Self.Subviews) {
-        log("No update cache for you!")
-    }
-
-    func sizeThatFits(proposal: ProposedViewSize,
-                      subviews: Subviews,
-                      cache: inout Cache) -> CGSize {
-        guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
-            return CGSize(width: 0, height: 0)
-        }
-
-        let subviewResponse = subview.sizeThatFits(proposal)
-
-        let key = FuckingProposedViewSize(proposal)
-        let result: CGSize
-
-        if let cachedValue = cache[key] {
-            if cachedValue.width >= subviewResponse.width && cachedValue.height >= subviewResponse.height {
-                log("Cached value \(cachedValue) is >= subviewResponse \(subviewResponse).")
-                return cachedValue
-            }
-
-            result = CGSize(width: max(subviewResponse.width,
-                                       cachedValue.width),
-                            height: max(subviewResponse.height,
-                                        cachedValue.height))
-
-            log("Cached value \(cachedValue) is not >= subviewResponse \(subviewResponse), so merging them to \(result).")
-        } else {
-            log("No cached value for \(key); using subviewResponse:", subviewResponse)
-            result = subviewResponse
-        }
-
-        cache[key] = result
-
-        return result
-    }
-
-    func placeSubviews(in bounds: CGRect,
-                       proposal: ProposedViewSize,
-                       subviews: Subviews,
-                       cache: inout Cache) {
-        guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
-            return
-        }
-
-        log("Placing subview in bounds \(bounds) with proposal \(proposal).")
-
-        subview.place(at: bounds.origin, proposal: proposal) // ❌
-//        subview.place(at: bounds.origin, proposal: .unspecified) // ❌
-//        subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size)) // ❌
-    }
-}
-
-struct ShrinkSlowlyLayout: Layout {
-    @MainActor @Binding var currentMinimumSize: CGSize
-
-    let delay: ContinuousClock.Duration
-    let speed: Double
-
-    struct FuckingProposedViewSize: Hashable {
-        var width: CGFloat?
-        var height: CGFloat?
-
-        init(_ proposal: ProposedViewSize) {
-            self.width = proposal.width
-            self.height = proposal.height
-        }
-    }
-
-    struct FuckingCGSize: Hashable {
-        var width: CGFloat
-        var height: CGFloat
-
-        init(_ size: CGSize) {
-            self.width = size.width
-            self.height = size.height
-        }
-
-        var asCGSize: CGSize {
-            CGSize(width: width, height: height)
-        }
-    }
-
-    class Cache {
-        var lastRenderedSize: CGSize? = nil
-        var desiredSize: CGSize? = nil
-        var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
-        var shrinker: Task<Void, Never>? = nil
-
-        init() {}
-
-        func currentMinimumSize(delay: ContinuousClock.Duration) -> (size: CGSize, timeRemaining: ContinuousClock.Duration)? {
-            let times = renderTimesPerDesiredSize.sorted { $0.key.width > $1.key.width }
-
-            for (wrappedSize, time) in times {
-                let size = wrappedSize.asCGSize
-
-                log("\(size) last desired at \(time).")
-
-                let timeout = time + delay
-                let timeRemaining = timeout - .now
-
-                if .zero < timeRemaining {
-                    return (size, timeRemaining)
-                } else {
-                    renderTimesPerDesiredSize.removeValue(forKey: wrappedSize)
-                }
-            }
-
-            return nil
-        }
-    }
-
-    func makeCache(subviews: Self.Subviews) -> Self.Cache {
-        log("Making cache.")
-        return Cache()
-    }
-
-    func updateCache(_ cache: inout Self.Cache,
-                     subviews: Self.Subviews) {
-        // Do nothing; the default implementation destroys the cache, so we have to override it merely to stop that.
-    }
-
-    @MainActor
-    func sizeThatFits(proposal: ProposedViewSize,
-                      subviews: Subviews,
-                      cache: inout Cache) -> CGSize {
-        guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
-            return CGSize(width: 0, height: 0)
-        }
-
-        let subviewResponse = subview.sizeThatFits(proposal)
-
-        if proposal.isReal {
-            let lastDesiredSize = cache.desiredSize
-
-            if let lastDesiredSize {
-                log("Last desired size was \(lastDesiredSize) - recording to for time \(ContinuousClock.now).")
-                cache.renderTimesPerDesiredSize[FuckingCGSize(lastDesiredSize)] = .now
-            }
-
-            if cache.desiredSize != subviewResponse {
-                log("Desired size:", subviewResponse)
-                cache.desiredSize = subviewResponse
-            }
-
-            let response = subviewResponse
-                .unioned(with: currentMinimumSize)
-                .unioned(with: cache.currentMinimumSize(delay: delay)?.size ?? .zero)
-
-            log("sizeThatFits(\(proposal), …) -> \(response)")
-
-            return response
-        } else {
-            log("sizeThatFits(\(proposal), …) -> \(subviewResponse) [unmodified]")
-            return subviewResponse
-        }
-    }
-
-    @MainActor
-    func startShrinker(cache: inout Cache) {
-        log("Starting shrinker…")
-
-        if let existingShrinker = cache.shrinker {
-            log("WARNING: already had a shrinker.")
-            existingShrinker.cancel()
-        }
-
-        cache.shrinker = Task { @MainActor [weak cache] in
-            do {
-                loop: while !Task.isCancelled {
-                    guard let cache else {
-                        log("Cache gone, cancelling.")
-                        throw CancellationError()
-                    }
-
-                    guard let desiredSize = cache.desiredSize else {
-                        log("🐞 Don't know my own desired size, so can't shrink to anything.  Cancelling.")
-                        throw CancellationError()
-                    }
-
-                    var minimumSize = desiredSize
-
-                    if let (size, timeRemaining) = cache.currentMinimumSize(delay: delay) {
-                        minimumSize.union(with: size)
-
-                        if minimumSize.encompasses(cache.lastRenderedSize ?? .zero) {
-                            log("Can't shrink below \(size) yet because there's still \(timeRemaining) before the delay ends.")
-                            try await Task.sleep(for: timeRemaining)
-                            continue loop
-                        }
-                    }
-
-                    let newMinimumSize = CGSize(width: max((cache.lastRenderedSize?.width ?? 1) - 1, minimumSize.width),
-                                                height: max((cache.lastRenderedSize?.height ?? 1) - 1, minimumSize.height))
-
-                    if currentMinimumSize != newMinimumSize {
-                        log("Shrinking below \(cache.lastRenderedSize.orNilString) towards \(desiredSize) (current minimum size \(minimumSize)).  Current target: \(currentMinimumSize)")
-                        currentMinimumSize = newMinimumSize
-                    }
-
-                    try await Task.sleep(for: .seconds(1) / speed)
-                }
-            } catch {
-                log("Shrinker cancelled.")
-            }
-        }
-    }
-
-    @MainActor
-    func placeSubviews(in bounds: CGRect,
-                       proposal: ProposedViewSize,
-                       subviews: Subviews,
-                       cache: inout Cache) {
-        guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
-            return
-        }
-
-        log("Placing subview in bounds \(bounds) with proposal \(proposal.description).")
-
-        if proposal.isReal {
-            if let desiredSize = cache.desiredSize {
-                log("Desired size is \(desiredSize), recording that for \(ContinuousClock.now).")
-                cache.renderTimesPerDesiredSize[FuckingCGSize(desiredSize)] = .now
-
-                if nil != cache.shrinker && desiredSize == bounds.size {
-                    cache.shrinker?.cancel()
-                    cache.shrinker = nil
-                }
-
-                if nil == cache.shrinker && desiredSize.isSmallerThan(bounds.size) {
-                    log("Desired size \(desiredSize) is smaller than current rendered size \(bounds.size), so starting shrinker…")
-
-                    startShrinker(cache: &cache)
-                }
-            }
-
-            if cache.lastRenderedSize != bounds.size {
-//                log("Previously rendered in bounds \(cache.lastRenderedSize), now rendering in \(bounds.size).")
-
-                if !(cache.lastRenderedSize?.encompasses(bounds.size) ?? false) {
-                    log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")
-                }
-
-                cache.lastRenderedSize = bounds.size
-            }
-        }
-
-        subview.place(at: bounds.origin, proposal: proposal) // ❌
-    }
-}
-
-extension Optional {
-    var orNilString: String {
-        if let self {
-            return String(describing: self)
-        } else {
-            return "nil"
-        }
-    }
-}
-
-extension ProposedViewSize {
-    var description: String {
-        let w = if let width { width.description } else { "nil" }
-        let h = if let height { height.description } else { "nil" }
-
-        return "(\(w), \(h))"
-    }
-
-    var isConcrete: Bool {
-        (width?.isFinite ?? false) && (height?.isFinite ?? false)
-    }
-
-    var isReal: Bool {
-        isConcrete && (0 < (width ?? 0)) && (0 < (height ?? 0))
-    }
-}
-
-extension CGSize {
-    func fitsWithin(_ other: CGSize) -> Bool {
-        self.width <= other.width && self.height <= other.height
-    }
-
-    func encompasses(_ other: CGSize) -> Bool {
-        self.width >= other.width && self.height >= other.height
-    }
-
-    func isBiggerThan(_ other: CGSize) -> Bool {
-        self.width > other.width || self.height > other.height
-    }
-
-    func isSmallerThan(_ other: CGSize) -> Bool {
-        self.width < other.width || self.height < other.height
-    }
-
-    mutating func union(with other: CGSize) {
-        if other.width > self.width {
-            self.width = other.width
-        }
-
-        if other.height > self.height {
-            self.height = other.height
-        }
-    }
-
-    func unioned(with other: CGSize) -> CGSize {
-        CGSize(width: max(self.width, other.width),
-               height: max(self.height, other.height))
-    }
-}
-
-@MainActor
-struct ShrinkSlowly<C: View>: View {
-    @State var currentMinimumSize: CGSize = .zero
-
-    let delay: Duration
-    let speed: Double
-
-    let content: () -> C
-
-    public init(delay: Duration = .seconds(3),
-                speed: Double = 100,
-                @ViewBuilder content: @escaping () -> C) {
-        self.delay = delay
-        self.speed = speed
-        self.content = content
-    }
-
-    var body: some View {
-        let _ = currentMinimumSize // Have to explicitly reference `shrink` in order to be re-run when `shrink` changes.
-
-        ShrinkSlowlyLayout(currentMinimumSize: $currentMinimumSize,
-                           delay: delay,
-                           speed: speed) {
-            content()
-        }
+extension View {
+    var dottedLineBorder: some View {
+        self.overlay(
+            Rectangle()
+                .strokeBorder(.black, style: .init(lineWidth: 1, dash: [1, 1])))
     }
 }
 
 struct ContentView: View {
-    @State var width: CGFloat = 400
+    @State var width: CGFloat = 100
     @State var x = ""
+    @State var y = ""
 
     var body: some View {
         VStack(spacing: 10) {
-            let text = String(repeating: "•", count: Int(width) / 5)
+            HStack {
+                Button("Shrink") {
+                    width /= 2
+                    print("New width:", width)
+                }
+
+                Button("Grow") {
+                    width *= 2
+                    print("New width:", width)
+                }
+            }
+
+            Text("No animation nor shrink control")
+                .font(.title)
 
             HStack {
                 Text("Left")
                 Rectangle()
                     .fill(.gray)
                     .frame(width: width, height: 100)
-                    .border(.black, width: 1)
+                    .dottedLineBorder
                 Text("Right")
             }
+
+            let text = String(repeating: "•", count: Int(width) / 5)
 
             HStack {
                 Text("Left")
                 Text(text)
                     .backgroundStyle(.gray)
-                    .border(.black, width: 1)
+                    .dottedLineBorder
                 Text("Right")
             }
 
             HStack {
                 Text("Left")
+                Text(x)
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
+                Text(y)
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            Divider()
+
+            Text("SwiftUI animation")
+                .font(.title)
+
+            HStack {
+                Text("Left")
                 Rectangle()
                     .fill(.red)
-                    .strokeBorder(.black, style: .init(lineWidth: 2, dash: [3, 3]))
                     .frame(width: width, height: 100)
-                //                .animation(/*@START_MENU_TOKEN@*/.easeIn/*@END_MENU_TOKEN@*/.delay(1), value: frameSize)
-
-                //                .keyframeAnimator(initialValue: frameSize, trigger: frameSize) {
-                //                    $0.frame(width: $1.width, height: $1.height)
-                //                } keyframes: { value in
-                //                    KeyframeTrack(\.width) {
-                //                        let _ = log("value:", value, "frameSize:", frameSize)
-                //
-                //                        LinearKeyframe(frameSize.width, duration: frameSize.width < value.width ? 10 : 0.5)
-                //                    }
-                //                }
-
-                //                .phaseAnimator([1, 2], trigger: frameSize) {
-                //                    let _ = log("phaseAnimator:", $0, $1)
-                //                    $0.frame(width: frameSize.width, height: frameSize.height)
-                //                } animation: {
-                //                    log("animation:", $0)
-                //                    return Animation.linear(duration: $0)
-                //                }
-
-                //                .border(.black, width: 1)
-                    .animation(Animation(Custom()).delay(1), value: width)
-                    .border(.black, width: 1)
+                    .animation(Animation(Custom()).delay(3), value: width)
+                    .dottedLineBorder
                 Text("Right")
             }
 
             HStack {
                 Text("Left")
                 Text(text)
-                    .backgroundStyle(.red)
-//                    .strokeBorder(.black, style: .init(lineWidth: 2, dash: [3, 3]))
-                    .animation(Animation(Custom()).delay(1), value: width)
-                    .border(.black, width: 1)
+                    .animation(Animation(Custom()).delay(3), value: width)
+                    .dottedLineBorder
                 Text("Right")
             }
 
-//            HStack {
-//                Text("Left")
-//
-//                ShrinkSlowly {
-//                    Rectangle()
-//                        .fill(.blue)
-//                }.border(FillShapeStyle(), width: 2)
-//                    .frame(width: width, height: 100)
-//                    .border(.black, width: 1)
-//
-//                Text("Right")
-//            }
+            HStack {
+                Text("Left")
+                Text(x)
+                    .animation(Animation(Custom()).delay(3), value: width)
+                    .dottedLineBorder
+                Text("Right")
+            }
 
-//            HStack {
-//                Text("Left")
-//
-//                ShrinkSlowly {
-//                    Text(text)
-//                        .backgroundStyle(.blue)
-//                }.border(FillShapeStyle(), width: 2)
-//                    .frame(width: width, height: 100)
-//                    .border(.black, width: 1)
-//
-//                Text("Right")
-//            }
+            HStack {
+                Text("Left")
+                Text(y)
+                    .animation(Animation(Custom()).delay(3), value: width)
+                    .dottedLineBorder
+                Text("Right")
+            }
 
-//            HStack {
-//                Text("Left")
-//
-//                ShrinkSlowly {
-//                    Rectangle()
-//                        .fill(.cyan)
-//                        .frame(width: width, height: 100)
-//                }.border(FillShapeStyle(), width: 2)
-//                    .border(.black, width: 1)
-//
-//                Text("Right")
-//            }
+            Divider()
+
+            Text("Viagra")
+                .font(.title)
+            Text("Never shrink")
+                .font(.title2)
+
+            HStack {
+                Text("Left")
+                Rectangle()
+                    .fill(.cyan)
+                    .frame(width: width, height: 100)
+                    .neverShrink()
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
+                Text(text)
+                    .neverShrink()
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
+                Text(x)
+                    .neverShrink()
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
+                Text(y)
+                    .neverShrink()
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            Text("Shrink slowly (default delay & speed)")
+                .font(.title2)
+                .padding(.top, 10)
+
+#if false // How *not* to use Viagra:
+            HStack {
+                Text("Left")
+
+                Rectangle()
+                    .fill(.blue)
+                    .shrinkSlowly() // ❌ .frame(…) must be before .shrinkSlowly(…).
+                    .frame(width: width, height: 100)
+                    .dottedLineBorder
+
+                Text("Right")
+            }
 
             HStack {
                 Text("Left")
 
-                ShrinkSlowly {
-                    Text(text)
-                        .backgroundStyle(.cyan)
-                }.border(FillShapeStyle(), width: 2)
-                    .border(.black, width: 1)
+                Text(text)
+                    .shrinkSlowly() // ❌ .frame(…) must be before .shrinkSlowly(…).
+                    .frame(width: width, height: 100)
+                    .dottedLineBorder
 
+                Text("Right")
+            }
+#endif
+
+            HStack {
+                Text("Left")
+                Rectangle()
+                    .fill(.cyan)
+                    .frame(width: width, height: 100)
+                    .shrinkSlowly()
+                    .dottedLineBorder
                 Text("Right")
             }
 
             HStack {
-                Text("Naive")
+                Text("Left")
+                Text(text)
+                    .shrinkSlowly()
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
                 Text(x)
+                    .shrinkSlowly()
+                    .dottedLineBorder
                 Text("Right")
             }
 
             HStack {
-                Text("ShrinkSlowly")
-
-                ShrinkSlowly(delay: .seconds(1)) {
-                    Text(x)
-                }
-
-                Text("1s delay")
-            }
-
-            HStack {
-                Text("ShrinkSlowly")
-
-                ShrinkSlowly {
-                    Text(x)
-                }
-
-                Text("3s delay (default)")
-            }
-
-            HStack {
-                Button("Shrink") {
-                    width /= 2
-                    log("New width:", width)
-                }
-
-                Button("Grow") {
-                    width *= 2
-                    log("New width:", width)
-                }
+                Text("Left")
+                Text(y)
+                    .shrinkSlowly()
+                    .dottedLineBorder
+                Text("Right")
             }
         }
-        .frame(width: 1000, height: 500)
         .padding()
         .task {
+            var count = 0
+
             while !Task.isCancelled {
                 let now = Date.now.timeIntervalSinceReferenceDate
+                
                 x = String(repeating: "█", count: Int(fabs(sin(now) + sin(now * 1.5)) * 20))
+                
+                y = count.formatted()
+                count &+= 1
+
                 try? await Task.sleep(for: .milliseconds(1 / 60.0))
             }
         }

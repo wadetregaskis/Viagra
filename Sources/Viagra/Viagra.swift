@@ -1,6 +1,6 @@
 //  Created by Wade Tregaskis on 2024-05-18.
 
-import SwiftUI
+public import SwiftUI
 
 
 #if false // Rudimentary control over whether logging is emitted.  Ideally there'd be just some simple global variable that could be manipulated at runtime, but unfortunately SwiftUI doesn't formally promise to only invoke key methods (that want to include logging) from @MainActor, and globals must be bound to a specific isolation domain (in Swift 6 onwards).  And I don't really want to force use of a specific logging system (that might otherwise provide a way to control logging dynamically).  Perhaps once Atomics are sufficiently available, from the Swift standard library, this can be addressed.
@@ -98,7 +98,7 @@ struct ShrinkSlowlyLayout: Layout {
         }
     }
 
-    class Cache {
+    final class Cache: @unchecked Sendable { // TODO: Not remotely Sendable, but this hack is required in order to work around design flaws in SwiftUI's Layout.  Remove this horrible lie once Layout is fixed.
         var lastRenderedSize: CGSize? = nil
         var desiredSize: CGSize? = nil
         var renderTimesPerDesiredSize = [FuckingCGSize: ContinuousClock.Instant]()
@@ -138,7 +138,7 @@ struct ShrinkSlowlyLayout: Layout {
         // Do nothing; the default implementation destroys the cache, so we have to override it merely to stop that.
     }
 
-    @MainActor
+    //@MainActor // Should be, but Layout is broken as it's missing @MainActor for all its key methods.
     func sizeThatFits(proposal: ProposedViewSize,
                       subviews: Subviews,
                       cache: inout Cache) -> CGSize {
@@ -164,13 +164,16 @@ struct ShrinkSlowlyLayout: Layout {
 
             let delayLimit = cache.currentMinimumSize(delay: delay)
 
-            let response = subviewResponse
-                .unioned(with: currentMinimumSize)
-                .unioned(with: delayLimit?.size ?? .zero)
 
-            log("sizeThatFits(\(proposal), …) -> \(response) [\(subviewResponse) ∪ \(currentMinimumSize) ∪ \(delayLimit.orNilString)]")
+            return MainActor.assumeIsolated { // TODO: remove this hack once Layout is fixed (to be @MainActor).
+                let response = subviewResponse
+                    .unioned(with: currentMinimumSize)
+                    .unioned(with: delayLimit?.size ?? .zero)
 
-            return response
+                log("sizeThatFits(\(proposal), …) -> \(response) [\(subviewResponse) ∪ \(currentMinimumSize) ∪ \(delayLimit.orNilString)]")
+
+                return response
+            }
         } else {
             log("sizeThatFits(\(proposal), …) -> \(subviewResponse) [unmodified]")
             return subviewResponse
@@ -234,7 +237,7 @@ struct ShrinkSlowlyLayout: Layout {
         }
     }
 
-    @MainActor
+    //@MainActor // Should be, but Layout is broken as it's missing @MainActor for all its key methods.
     func placeSubviews(in bounds: CGRect,
                        proposal: ProposedViewSize,
                        subviews: Subviews,
@@ -259,7 +262,9 @@ struct ShrinkSlowlyLayout: Layout {
                 if nil == cache.shrinker && desiredSize.isSmallerThan(bounds.size) {
                     log("Desired size \(desiredSize) is smaller than current rendered size \(bounds.size), so starting shrinker…")
 
-                    startShrinker(cache: &cache)
+                    MainActor.assumeIsolated {
+                        startShrinker(cache: &cache)
+                    }
                 }
             }
 

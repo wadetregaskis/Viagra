@@ -3,10 +3,13 @@
 public import SwiftUI
 
 
-#if false // Rudimentary control over whether logging is emitted.  Ideally there'd be just some simple global variable that could be manipulated at runtime, but unfortunately SwiftUI doesn't formally promise to only invoke key methods (that want to include logging) from @MainActor, and globals must be bound to a specific isolation domain (in Swift 6 onwards).  And I don't really want to force use of a specific logging system (that might otherwise provide a way to control logging dynamically).  Perhaps once Atomics are sufficiently available, from the Swift standard library, this can be addressed.
+public nonisolated(unsafe) var ViagraDebugLoggingEnabled = false // Rudimentary control over whether logging is emitted.  This is not technically thread-safe, but since it's a boolean and it doesn't really matter if it races between writes and reads, it actually *is* effectively thread-safe.  Ideally there'd be a way to express this to the compiler without using the misleading word "unsafe", but alas, there apparently is not.
+
 let startTime = ContinuousClock.now
 
 func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+    guard ViagraDebugLoggingEnabled else { return }
+
     var message = ""
 
     for item in items {
@@ -19,9 +22,6 @@ func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {
 
     print("[", (.now - startTime).formatted(.time(pattern: .hourMinuteSecond(padHourToLength: 0, fractionalSecondsLength: 3))), "] ", message, separator: "", terminator: terminator)
 }
-#else
-func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {}
-#endif
 
 
 struct NeverShrink: Layout {

@@ -164,7 +164,6 @@ struct ShrinkSlowlyLayout: Layout {
 
             let delayLimit = cache.currentMinimumSize(delay: delay)
 
-
             return MainActor.assumeIsolated { // TODO: remove this hack once Layout is fixed (to be @MainActor).
                 let response = subviewResponse
                     .unioned(with: currentMinimumSize)

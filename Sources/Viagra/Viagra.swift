@@ -153,7 +153,7 @@ struct ShrinkSlowlyLayout: Layout {
             let lastDesiredSize = cache.desiredSize
 
             if let lastDesiredSize {
-                log("Last desired size was \(lastDesiredSize) - recording to for time \(ContinuousClock.now).")
+                log("Last desired size was \(lastDesiredSize) - recording that for \(ContinuousClock.now).")
                 cache.renderTimesPerDesiredSize[FuckingCGSize(lastDesiredSize)] = .now
             }
 

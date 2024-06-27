@@ -81,6 +81,7 @@ struct ContentView: View {
             HStack {
                 Text("Left")
                 Text(text)
+                    .fixedSize()
                     .backgroundStyle(.gray)
                     .dottedLineBorder
                 Text("Right")
@@ -117,6 +118,7 @@ struct ContentView: View {
             HStack {
                 Text("Left")
                 Text(text)
+                    .fixedSize()
                     .animation(Animation(Custom()).delay(3), value: width)
                     .dottedLineBorder
                 Text("Right")
@@ -158,6 +160,7 @@ struct ContentView: View {
             HStack {
                 Text("Left")
                 Text(text)
+                    .fixedSize()
                     .neverShrink()
                     .dottedLineBorder
                 Text("Right")

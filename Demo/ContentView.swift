@@ -290,7 +290,13 @@ struct ContentView: View {
                 let now = Date.now.timeIntervalSinceReferenceDate
                 
                 x = String(repeating: "█", count: Int(fabs(sin(now) + sin(now * 1.5)) * 20))
-                
+
+                // This turned out to be surprisingly good at catching a bug whereby the height changes were ignored in `currentMinimumSize` such that the height would suddenly snap to much smaller values.  There's something in particular about `now * .pi` that triggers it relatively quickly - other scale factors (bigger and smaller) don't work nearly as well. 🤔
+                // It's not enabled by default because it's really annoying, frankly (the demo layout is VStack-based, so changes in height move all the views about abruptly).  It's also not essential for the purposes of the demo.
+//                if 0 < sin(now * .pi) {
+//                    x += "\n" + x
+//                }
+
                 y = count.formatted()
                 count &+= 1
 

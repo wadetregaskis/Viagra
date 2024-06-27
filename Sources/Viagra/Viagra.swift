@@ -107,9 +107,9 @@ struct ShrinkSlowlyLayout: Layout {
         init() {}
 
         func currentMinimumSize(delay: ContinuousClock.Duration) -> (size: CGSize, timeRemaining: ContinuousClock.Duration)? {
-            let times = renderTimesPerDesiredSize.sorted { $0.key.width > $1.key.width }
+            var maybeResult: (size: CGSize, timeRemaining: ContinuousClock.Duration)? = nil
 
-            for (wrappedSize, time) in times {
+            for (wrappedSize, time) in renderTimesPerDesiredSize {
                 let size = wrappedSize.asCGSize
 
                 log("\(size) last desired at \(time).")
@@ -118,13 +118,18 @@ struct ShrinkSlowlyLayout: Layout {
                 let timeRemaining = timeout - .now
 
                 if .zero < timeRemaining {
-                    return (size, timeRemaining)
+                    if let result = maybeResult {
+                        maybeResult = (result.size.unioned(with: size),
+                                       min(result.timeRemaining, timeRemaining))
+                    } else {
+                        maybeResult = (size, timeRemaining)
+                    }
                 } else {
                     renderTimesPerDesiredSize.removeValue(forKey: wrappedSize)
                 }
             }
 
-            return nil
+            return maybeResult
         }
     }
 

@@ -96,7 +96,6 @@ struct ContentView: View {
             HStack {
                 Text("Left")
                 Text(y)
-                    .dottedLineBorder
                 Text("Right")
             }
 
@@ -135,7 +134,6 @@ struct ContentView: View {
                 Text("Left")
                 Text(y)
                     .animation(Animation(Custom()).delay(3), value: width)
-                    .dottedLineBorder
                 Text("Right")
             }
 
@@ -177,7 +175,6 @@ struct ContentView: View {
                 Text("Left")
                 Text(y)
                     .neverShrink()
-                    .dottedLineBorder
                 Text("Right")
             }
 
@@ -277,7 +274,6 @@ struct ContentView: View {
                 Text("Left")
                 Text(y)
                     .shrinkSlowly(delay: .milliseconds(10))
-                    .dottedLineBorder
                 Text("Right")
             }
 

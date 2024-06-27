@@ -276,9 +276,9 @@ struct ShrinkSlowlyLayout: Layout {
                 log("Previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")
 
                 if let lastRenderedSize = cache.lastRenderedSize {
-                    // This assertion is to catch unexpected (or unexpectedly rapid) shrinkage.  This has caught at least one sneaky bug (a race condition, of sorts, between the shrinker sleeping off a delay and the view re-rendering for other reasons, before the shrinker took steps to lock the view's size while it's sleeping off the delay).  All going well there are no more such bugs, so it's no longer necessary.  It is possible, however, that it'll be tripped in situations which aren't technically just bugs in this code but perhaps just bad interactions with other SwiftUI views or layouts.  If you think you've found such a case, please report it.  You can disable the assertion in the meantime, but better to have the problem fixed properly.
-                    assert(lastRenderedSize.width - 1.1 <= bounds.size.width
-                           && lastRenderedSize.height - 1.1 <= bounds.size.height, "View shrank by more than one point between renders - shouldn't be possible.  Last rendered size was \(lastRenderedSize), new size is \(bounds.size).")
+                    // This assertion is to catch unexpected (or unexpectedly rapid) shrinkage.  This has caught at least two sneaky bugs (one a simple failure to account for changing *height*, as opposed to width, correctly, and another a race condition of sorts, between the shrinker sleeping off a delay and the view re-rendering for other reasons, before the shrinker took steps to lock the view's size while it's sleeping off the delay).  However, there are circumstances where the view *should* in fact shrink faster than expected (e.g. resizing the containing window, which can simply force the views inside it to shrink).  So it can't be enabled by default.  But it can be useful to enable for local testing in some cases.
+//                    assert(lastRenderedSize.width - 1.1 <= bounds.size.width
+//                           && lastRenderedSize.height - 1.1 <= bounds.size.height, "View shrank by more than one point between renders - shouldn't be possible.  Last rendered size was \(lastRenderedSize), new size is \(bounds.size).")
 
                     if lastRenderedSize.isSmallerThan(bounds.size) {
                         log("Bounds grew; previously rendered in bounds \(cache.lastRenderedSize.orNilString), now rendering in \(bounds.size).")

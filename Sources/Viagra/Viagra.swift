@@ -112,12 +112,12 @@ struct ShrinkSlowlyLayout: Layout {
             for (wrappedSize, time) in renderTimesPerDesiredSize {
                 let size = wrappedSize.asCGSize
 
-                log("\(size) last desired at \(time).")
-
                 let timeout = time + delay
                 let timeRemaining = timeout - .now
 
                 if .zero < timeRemaining {
+                    log("\(size) last desired at \(time).")
+
                     if let result = maybeResult {
                         maybeResult = (result.size.unioned(with: size),
                                        min(result.timeRemaining, timeRemaining))

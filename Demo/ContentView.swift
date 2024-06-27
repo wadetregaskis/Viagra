@@ -243,6 +243,8 @@ struct ContentView: View {
                     .dottedLineBorder
                 Text("Right")
             }
+
+            Spacer()
         }
         .padding()
         .task {

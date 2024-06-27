@@ -411,6 +411,8 @@ public extension View {
     ///
     /// - Parameters:
     ///   - delay: The amount of time to wait before shrinking.  Defaults to three seconds.
+    ///
+    ///       ⚠️ **Known bug:** If the delay is too small (meaning, typically, less than a millisecond or so) it can cause buggy behaviour where the view snaps to smaller sizes.
     ///   - speed: The speed of the shrinkage once it does occur, in **pixels per second**.  This is not "Retina-aware" - if you want the speed to be visually consistent irrespective of Retina factor, you'll need to divide this by the Retina factor (e.g. [`backingScaleFactor`](https://developer.apple.com/documentation/appkit/nswindow/1419459-backingscalefactor) from `NSWindow`).
     ///
     ///       For best results use a factor of the display frequency (e.g. on a 120 Hz display, the best speeds are 120, 60, 30, and 15).  The default is 30.

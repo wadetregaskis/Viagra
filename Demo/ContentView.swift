@@ -240,6 +240,43 @@ struct ContentView: View {
                 Text("Left")
                 Text(y)
                     .shrinkSlowly()
+                Text("Right")
+            }
+
+            Text("Shrink slowly (no delay, default speed)")
+                .font(.title2)
+                .padding(.top, 10)
+
+            HStack {
+                Text("Left")
+                Rectangle()
+                    .fill(.cyan)
+                    .frame(width: width, height: rectangleHeight)
+                    .shrinkSlowly(delay: .milliseconds(10))
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
+                Text(text)
+                    .shrinkSlowly(delay: .milliseconds(10))
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
+                Text(x)
+                    .shrinkSlowly(delay: .milliseconds(10))
+                    .dottedLineBorder
+                Text("Right")
+            }
+
+            HStack {
+                Text("Left")
+                Text(y)
+                    .shrinkSlowly(delay: .milliseconds(10))
                     .dottedLineBorder
                 Text("Right")
             }

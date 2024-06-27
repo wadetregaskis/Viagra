@@ -50,6 +50,8 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 10) {
+            let rectangleHeight: CGFloat = 25
+
             HStack {
                 Button("Shrink") {
                     width /= 2
@@ -69,7 +71,7 @@ struct ContentView: View {
                 Text("Left")
                 Rectangle()
                     .fill(.gray)
-                    .frame(width: width, height: 100)
+                    .frame(width: width, height: rectangleHeight)
                     .dottedLineBorder
                 Text("Right")
             }
@@ -107,7 +109,7 @@ struct ContentView: View {
                 Text("Left")
                 Rectangle()
                     .fill(.red)
-                    .frame(width: width, height: 100)
+                    .frame(width: width, height: rectangleHeight)
                     .animation(Animation(Custom()).delay(3), value: width)
                     .dottedLineBorder
                 Text("Right")
@@ -149,7 +151,7 @@ struct ContentView: View {
                 Text("Left")
                 Rectangle()
                     .fill(.cyan)
-                    .frame(width: width, height: 100)
+                    .frame(width: width, height: rectangleHeight)
                     .neverShrink()
                     .dottedLineBorder
                 Text("Right")
@@ -190,7 +192,7 @@ struct ContentView: View {
                 Rectangle()
                     .fill(.blue)
                     .shrinkSlowly() // ❌ .frame(…) must be before .shrinkSlowly(…).
-                    .frame(width: width, height: 100)
+                    .frame(width: width, height: rectangleHeight)
                     .dottedLineBorder
 
                 Text("Right")
@@ -201,7 +203,7 @@ struct ContentView: View {
 
                 Text(text)
                     .shrinkSlowly() // ❌ .frame(…) must be before .shrinkSlowly(…).
-                    .frame(width: width, height: 100)
+                    .frame(width: width, height: rectangleHeight)
                     .dottedLineBorder
 
                 Text("Right")
@@ -212,7 +214,7 @@ struct ContentView: View {
                 Text("Left")
                 Rectangle()
                     .fill(.cyan)
-                    .frame(width: width, height: 100)
+                    .frame(width: width, height: rectangleHeight)
                     .shrinkSlowly()
                     .dottedLineBorder
                 Text("Right")

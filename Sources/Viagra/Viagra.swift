@@ -108,6 +108,7 @@ struct ShrinkSlowlyLayout: Layout {
 
         func currentMinimumSize(delay: ContinuousClock.Duration) -> (size: CGSize, timeRemaining: ContinuousClock.Duration)? {
             var maybeResult: (size: CGSize, timeRemaining: ContinuousClock.Duration)? = nil
+            var expiredKeys: [FuckingCGSize] = []
 
             for (wrappedSize, time) in renderTimesPerDesiredSize {
                 let size = wrappedSize.asCGSize
@@ -125,8 +126,12 @@ struct ShrinkSlowlyLayout: Layout {
                         maybeResult = (size, timeRemaining)
                     }
                 } else {
-                    renderTimesPerDesiredSize.removeValue(forKey: wrappedSize)
+                    expiredKeys.append(wrappedSize)
                 }
+            }
+
+            for key in expiredKeys {
+                renderTimesPerDesiredSize.removeValue(forKey: key)
             }
 
             return maybeResult

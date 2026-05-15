@@ -41,5 +41,9 @@ let package = Package(
         .target(
             name: "Viagra",
             swiftSettings: settings),
+        .testTarget(
+            name: "ViagraTests",
+            dependencies: ["Viagra"],
+            swiftSettings: settings),
     ]
 )

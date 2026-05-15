@@ -321,10 +321,6 @@ extension ProposedViewSize {
 }
 
 extension CGSize {
-    func fitsWithin(_ other: CGSize) -> Bool {
-        self.width <= other.width && self.height <= other.height
-    }
-
     func encompasses(_ other: CGSize) -> Bool {
         self.width >= other.width && self.height >= other.height
     }

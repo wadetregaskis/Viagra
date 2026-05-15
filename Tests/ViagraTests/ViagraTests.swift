@@ -263,6 +263,26 @@ final class FuckingCGSizeTests: XCTestCase {
     }
 }
 
+final class CacheInitialStateTests: XCTestCase {
+    func testFreshCacheIsEmpty() {
+        let cache = ShrinkSlowlyLayout.Cache()
+
+        XCTAssertNil(cache.lastRenderedSize)
+        XCTAssertNil(cache.desiredSize)
+        XCTAssertNil(cache.shrinker)
+
+        XCTAssertTrue(cache.renderTimesPerDesiredSize.isEmpty)
+    }
+
+    func testCurrentMinimumSizeOnFreshCacheReturnsNil() {
+        let cache = ShrinkSlowlyLayout.Cache()
+
+        XCTAssertNil(cache.currentMinimumSize(delay: .seconds(1)))
+        XCTAssertNil(cache.currentMinimumSize(delay: .zero))
+        XCTAssertNil(cache.currentMinimumSize(delay: .seconds(-1)))
+    }
+}
+
 final class CacheCurrentMinimumSizeUnionTests: XCTestCase {
     // Verify that the returned size is the union (per-dimension max) of every alive entry, not just any single one.
     func testReturnedSizeUnionsAcrossMultipleAliveEntries() {

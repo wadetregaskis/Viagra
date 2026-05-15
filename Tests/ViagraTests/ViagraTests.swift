@@ -114,3 +114,26 @@ final class LogAutoclosureTests: XCTestCase {
                        "log() message must be evaluated exactly once when logging is enabled.")
     }
 }
+
+final class CGSizeHelpersTests: XCTestCase {
+    func testUnionedWithTakesMaxOfEachDimension() {
+        let a = CGSize(width: 10, height: 20)
+        let b = CGSize(width: 15, height: 5)
+        XCTAssertEqual(a.unioned(with: b), CGSize(width: 15, height: 20))
+    }
+
+    func testUnionMutatingMatchesUnioned() {
+        var a = CGSize(width: 10, height: 20)
+        a.union(with: CGSize(width: 15, height: 5))
+        XCTAssertEqual(a, CGSize(width: 15, height: 20))
+    }
+
+    func testEncompassesAndIsSmallerThan() {
+        let small = CGSize(width: 10, height: 10)
+        let big = CGSize(width: 20, height: 20)
+        XCTAssertTrue(big.encompasses(small))
+        XCTAssertFalse(small.encompasses(big))
+        XCTAssertTrue(small.isSmallerThan(big))
+        XCTAssertTrue(big.isBiggerThan(small))
+    }
+}

@@ -7,20 +7,15 @@ public nonisolated(unsafe) var ViagraDebugLoggingEnabled = false // Rudimentary 
 
 let startTime = ContinuousClock.now
 
-func log(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+func log(_ message: @autoclosure () -> String, terminator: String = "\n") {
     guard ViagraDebugLoggingEnabled else { return }
 
-    var message = ""
-
-    for item in items {
-        if !message.isEmpty {
-            message.append(separator)
-        }
-
-        message.append(String(describing: item))
-    }
-
-    print("[", (.now - startTime).formatted(.time(pattern: .hourMinuteSecond(padHourToLength: 0, fractionalSecondsLength: 3))), "] ", message, separator: "", terminator: terminator)
+    print("[",
+          (.now - startTime).formatted(.time(pattern: .hourMinuteSecond(padHourToLength: 0, fractionalSecondsLength: 3))),
+          "] ",
+          message(),
+          separator: "",
+          terminator: terminator)
 }
 
 
@@ -41,7 +36,7 @@ struct NeverShrink: Layout {
                       subviews: Subviews,
                       cache: inout Cache) -> CGSize {
         guard let subview = subviews.first, 1 == subviews.count else {
-            log("NeverShrink only works with one subview; found:", dump(subviews))
+            log("NeverShrink only works with one subview; found: \(String(reflecting: subviews))")
             return CGSize(width: 0, height: 0)
         }
 
@@ -64,7 +59,7 @@ struct NeverShrink: Layout {
                        subviews: Subviews,
                        cache: inout Cache) {
         guard let subview = subviews.first, 1 == subviews.count else {
-            log("NeverShrink only works with one subview; found:", dump(subviews))
+            log("NeverShrink only works with one subview; found: \(String(reflecting: subviews))")
             return
         }
 
@@ -153,7 +148,7 @@ struct ShrinkSlowlyLayout: Layout {
                       subviews: Subviews,
                       cache: inout Cache) -> CGSize {
         guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("ShrinkSlowly only works with one subview; found: \(String(reflecting: subviews))")
             return CGSize(width: 0, height: 0)
         }
 
@@ -168,7 +163,7 @@ struct ShrinkSlowlyLayout: Layout {
             }
 
             if cache.desiredSize != subviewResponse {
-                log("Desired size:", subviewResponse)
+                log("Desired size: \(subviewResponse)")
                 cache.desiredSize = subviewResponse
             }
 
@@ -252,7 +247,7 @@ struct ShrinkSlowlyLayout: Layout {
                        subviews: Subviews,
                        cache: inout Cache) {
         guard let subview = subviews.first, 1 == subviews.count else {
-            log("ShrinkSlowly only works with one subview; found:", dump(subviews))
+            log("ShrinkSlowly only works with one subview; found: \(String(reflecting: subviews))")
             return
         }
 

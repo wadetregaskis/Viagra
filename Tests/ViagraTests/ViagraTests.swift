@@ -81,3 +81,36 @@ final class CacheCurrentMinimumSizeTests: XCTestCase {
         XCTAssertEqual(result?.size.height, 25)
     }
 }
+
+final class LogAutoclosureTests: XCTestCase {
+    override func tearDown() {
+        ViagraDebugLoggingEnabled = false
+        super.tearDown()
+    }
+
+    func testMessageNotEvaluatedWhenLoggingDisabled() {
+        ViagraDebugLoggingEnabled = false
+
+        var evaluations = 0
+        log({
+            evaluations += 1
+            return "should not be called"
+        }())
+
+        XCTAssertEqual(evaluations, 0,
+                       "log() message must not be evaluated when ViagraDebugLoggingEnabled is false.")
+    }
+
+    func testMessageEvaluatedWhenLoggingEnabled() {
+        ViagraDebugLoggingEnabled = true
+
+        var evaluations = 0
+        log({
+            evaluations += 1
+            return "ok"
+        }())
+
+        XCTAssertEqual(evaluations, 1,
+                       "log() message must be evaluated exactly once when logging is enabled.")
+    }
+}
